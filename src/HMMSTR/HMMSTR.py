@@ -202,7 +202,7 @@ def decide_method(target,out,out_count_name):
     out_count_file = out + "_" + name + out_count_name
     if os.path.exists(out_count_file):
         counts_file= pd.read_csv(out_count_file, sep=" ",header=None)
-        counts_file.columns = ["read_id","strand","align_score","neg_log_likelihood","subset_likelihood","repeat_likelihood","align_start", "align_end","counts"]
+        counts_file.columns = ["read_id","strand","align_score","neg_log_likelihood","subset_likelihood","repeat_likelihood","repeat_start","repeat_end","align_start", "align_end","counts"]
         counts=counts_file.counts
     else:
         return None

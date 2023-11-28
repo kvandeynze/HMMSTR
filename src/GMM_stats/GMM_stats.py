@@ -52,7 +52,7 @@ class GMMStats:
         '''
         #read output file
         counts_data = pd.read_csv(out_count_file, sep=" ",header=None)
-        counts_data.columns = ["read_id","strand","align_score","neg_log_likelihood","subset_likelihood","repeat_likelihood","align_start", "align_end","counts"]
+        counts_data.columns = ["read_id","strand","align_score","neg_log_likelihood","subset_likelihood","repeat_likelihood","repeat_start","repeat_end","align_start", "align_end","counts"]
         counts_data['freq'] = counts_data.groupby(by='counts')['read_id'].transform('count')
         #ADDED outlier filtering
         outliers = []

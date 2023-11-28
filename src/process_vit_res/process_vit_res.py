@@ -110,7 +110,7 @@ def label_states(vit_out, hidden_states):
 #     R_end = pointers["S"] - pointers["P"]
 #     repeats = context[R_start:R_end] #need to see if this includes last index of repeat
 #     return final, final_labels, repeats, context, final_repeat_like
-def calc_likelihood(vit_out, pointers, labeled_seq,hidden_states, read):
+def calc_likelihood(vit_out, pointers, labeled_seq,hidden_states, read,subset_start, subset_end):
     '''
     Function to calculate likelihoods corresponding to subseqeunces to be used later
 
@@ -142,6 +142,11 @@ def calc_likelihood(vit_out, pointers, labeled_seq,hidden_states, read):
     Gn = pointers["P"] - 1
     final = likelihood_list[Sn] - likelihood_list[Gn]
     final_repeat_like = likelihood_list[pointers["S"]-1] - likelihood_list[pointers["R"]-1] #likelihood of just the repeat
+
+    #ADDED 11/13 -- get repeat coordinates per read for downstream motif analysis
+    repeat_end =pointers["S"]-1 + subset_start
+    repeat_start = pointers["R"] + subset_start
+
     final_labels = "-".join(labeled_seq[pointers["P"]:pointers["G2"]])
     #get context and repeat sequence, can't just use pointers cause there may be deletions so labelled seq and read may be different lengths
     #FIXME need to adjust for number deletions so we subset less of the read, otherwise indeces are off. not sure if only accounting for prefix or all deletions is necessary
@@ -176,7 +181,7 @@ def calc_likelihood(vit_out, pointers, labeled_seq,hidden_states, read):
     R_start = pointers["R"] - pointers["P"]
     R_end = pointers["S"] - pointers["P"]
     repeats = context[R_start:R_end] #need to see if this includes last index of repeat
-    return final, final_labels, repeats, context, final_repeat_like
+    return final, final_labels, repeats, context, final_repeat_like, repeat_start, repeat_end
 def count_repeats(labeled_seq, pointers,repeat_len,seq):
     '''
     Function to count the number of repeats in a sequence given a sequence labeled by its hidden states
