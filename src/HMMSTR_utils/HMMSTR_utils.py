@@ -177,3 +177,15 @@ def generate_input_sheet(coords_file, chrom_sizes_file, ref,flanking_length=200)
     targets_dict['repeat'].append(target.repeat)
     targets_dict['suffix'].append(ref_aligner.seq(name=target.chr,start=target.end,end=target.suffix_end))
   return pd.DataFrame(targets_dict)
+
+def remove_flanking_outliers(counts_data):
+  '''
+  filter outlier reads based on their flanking sequence likelihood.
+  this is useful for filtering off target reads and reads with large insertions
+  in their repeat sequence
+  '''
+  counts_data["flanking_likelihood"] = counts_data["subset_likelihood"] - counts_data["repeat_likelihood"]
+  thresh = counts_data["flanking_likelihood"].mean() - counts_data["flanking_likelihood"].std()
+  df_final=counts_data[counts_data.flanking_likelihood > thresh]
+  outliers= counts_data[~(counts_data.read_id.isin(df_final.read_id))]
+  return df_final, outliers.read_id

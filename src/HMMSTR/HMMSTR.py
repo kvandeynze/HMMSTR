@@ -244,7 +244,7 @@ def decide_method(target,out,out_count_name):
     return decision
 
 #assumes that decision has been added to targets dataframe as an additional column
-def call_peaks(row, out, out_count_name, plot_hists, max_peaks, filter_outliers=False, filter_quantile=0.25,bootstrap=False, CI_width=0.95, resample_size=100,allele_specific_plots=False,allele_specif_CIs=False, bandwidth='scott',kernel="gaussian"):
+def call_peaks(row, out, out_count_name, plot_hists, max_peaks, filter_outliers=False, filter_quantile=0.25,bootstrap=False, CI_width=0.95, resample_size=100,allele_specific_plots=False,allele_specif_CIs=False, bandwidth='scott',kernel="gaussian",flanking_like_filter=False):
     '''
     This method is the wrapper function for calling both KDE and GMM classes based on the decision per target, it also insures the outputs are uniform across all methods
     '''
@@ -254,7 +254,7 @@ def call_peaks(row, out, out_count_name, plot_hists, max_peaks, filter_outliers=
     if decision is not None and "kde" in decision:
         if decision == "kde_throw_outliers":
             filter_outliers = True #override when this option is chosen, will be the same as kde if user overrides
-        curr_kde = KDE_cluster(row,out,out_count_name, filter_outliers) #discard outliers will still be included in all of these regardless of if KDE-throw-outliers is chosen, that is the only option where it is the default
+        curr_kde = KDE_cluster(row,out,out_count_name, filter_outliers,flanking_like_filter) #discard outliers will still be included in all of these regardless of if KDE-throw-outliers is chosen, that is the only option where it is the default
         if curr_kde.data is None: #FIXME I am not sure if this will require column names to be returned or if apply doesnt care
             allele_calls = {}
             allele_calls = {"name":curr_kde.name}
@@ -275,11 +275,11 @@ def call_peaks(row, out, out_count_name, plot_hists, max_peaks, filter_outliers=
             final = allele_calls_series[cols]
             return final
         #get read info tsv
-        curr_kde.data = curr_kde.get_stats(plot_hists, filter_outliers, filter_quantile)
+        curr_kde.data = curr_kde.get_stats(plot_hists, filter_outliers, filter_quantile, flanking_like_filter)
         curr_kde.data.to_csv(out +"_"+ curr_kde.name +"_final_out.tsv", index = False, sep="\t")
         
-        clusters, allele_calls, outliers = curr_kde.call_clusters(kernel=kernel, bandwidth=bandwidth,max_k=max_peaks, output_plots =  plot_hists, filter_quantile=filter_quantile)
-        assignments = curr_kde.assign_clusters(clusters,outliers)
+        clusters, allele_calls, outliers, flanking_outliers = curr_kde.call_clusters(kernel=kernel, bandwidth=bandwidth,max_k=max_peaks, output_plots =  plot_hists, filter_quantile=filter_quantile)
+        assignments = curr_kde.assign_clusters(clusters,outliers, flanking_outliers)
 
         #plot allele_specific plots if applicable
         if allele_specific_plots:
@@ -289,10 +289,17 @@ def call_peaks(row, out, out_count_name, plot_hists, max_peaks, filter_outliers=
         #write out read assignments
         assignments["name"] = curr_kde.name
         assignments["peak_calling_method"] = decision
-        if os.path.exists(out + "read_assignments.tsv") == False:
-            assignments[['name','read_id','counts','cluster_assignments',"outlier","peak_calling_method"]].to_csv(out + "read_assignments.tsv", sep="\t", index=False, mode="a")
+        #only output flanking outlier if applicable
+        if flanking_like_filter:
+            if os.path.exists(out + "read_assignments.tsv") == False:
+                assignments[['name','read_id','counts','cluster_assignments',"outlier","flanking_outlier","peak_calling_method"]].to_csv(out + "read_assignments.tsv", sep="\t", index=False, mode="a")
+            else:
+                assignments[['name','read_id','counts','cluster_assignments',"outlier","flanking_outlier","peak_calling_method"]].to_csv(out + "read_assignments.tsv", sep="\t", index=False, mode="a", header=None)
         else:
-            assignments[['name','read_id','counts','cluster_assignments',"outlier","peak_calling_method"]].to_csv(out + "read_assignments.tsv", sep="\t", index=False, mode="a", header=None)
+            if os.path.exists(out + "read_assignments.tsv") == False:
+                assignments[['name','read_id','counts','cluster_assignments',"outlier","peak_calling_method"]].to_csv(out + "read_assignments.tsv", sep="\t", index=False, mode="a")
+            else:
+                assignments[['name','read_id','counts','cluster_assignments',"outlier","peak_calling_method"]].to_csv(out + "read_assignments.tsv", sep="\t", index=False, mode="a", header=None)
         
         #account for differing column number for less than max_k peaks
         #print("unique assignements: ", assignments.assignment.unique())
@@ -310,7 +317,8 @@ def call_peaks(row, out, out_count_name, plot_hists, max_peaks, filter_outliers=
         assignments = pd.merge(left=assignments, right=curr_kde.data[["read_id","freq"]], how="left")
         if bootstrap:
             if clusters != -1:
-                median_CIs = curr_kde.bootstrap_KDE(assignments[assignments.outlier == False], resample_size, CI_width, max_peaks, out)
+                #TODO I don't think I should be subsetting this beforehand since I call clustering from the kde object which has the fields for filtering outliers, change this once original test is done
+                median_CIs = curr_kde.bootstrap_KDE(assignments, resample_size, CI_width, max_peaks, out)
                 allele_calls_series = pd.concat([allele_calls_series,pd.Series(median_CIs)])
         if allele_specif_CIs: 
             for assignment in assignments.cluster_assignments.unique():
@@ -370,7 +378,7 @@ def call_peaks(row, out, out_count_name, plot_hists, max_peaks, filter_outliers=
             return pd.Series(curr_dict)
         #initialize GMMStats object
         gmm_stats = GMMStats(target_row=row) #contains all target attributes as well as E and A dictionaries
-        final_data = gmm_stats.get_stats(out_count_file, out,plot_hists, filter_outliers, filter_quantile=filter_quantile)
+        final_data = gmm_stats.get_stats(out_count_file, out,plot_hists, filter_outliers, filter_quantile=filter_quantile,flanking_like_filter=flanking_like_filter)
     
         final_data.to_csv(out +"_"+ gmm_stats.name +"_final_out.tsv", index = False, sep="\t")
     
@@ -380,29 +388,35 @@ def call_peaks(row, out, out_count_name, plot_hists, max_peaks, filter_outliers=
         #     max_peaks = 1
         
         #peak calling
-        final_data2 = final_data[final_data.outlier == False][final_data.counts != 0].copy()
+        final_data2 = final_data[final_data.outlier == False][final_data.flanking_outlier == False][final_data.counts != 0].copy()
         curr_row, final_data2['cluster_assignments'] = gmm_stats.call_peaks(final_data2, out, max_peaks, plot=plot_hists, save_allele_plots = allele_specific_plots)
         if curr_row is None:
             print("current row doesnt exist")
             return
         
         if bootstrap:
-            curr_row = gmm_stats.bootstrap_gmm(curr_row,final_data2[final_data2.outlier == False], resample_size, CI_width, max_peaks, out)
+            curr_row = gmm_stats.bootstrap_gmm(curr_row,final_data2, resample_size, CI_width, max_peaks, out)
         if allele_specif_CIs:
             for assignment in final_data2['cluster_assignments'].unique():
                 median_CIs = gmm_stats.bootstrap_gmm_allele_specific(final_data2[final_data2.cluster_assignments == assignment],resample_size,CI_width,out)
                 curr_row["H"+ str(assignment+1)+":median_CI_allele_specific"] = median_CIs
     
         #write out cluster assignments to file
-        assignments = pd.merge(left = final_data2[['read_id','counts','cluster_assignments']],right=final_data[["read_id","counts","outlier"]], on = ["read_id","counts"], how="right")
+        assignments = pd.merge(left = final_data2[['read_id','counts','cluster_assignments']],right=final_data[["read_id","counts","outlier","flanking_outlier"]], on = ["read_id","counts"], how="right")
         assignments["name"] = gmm_stats.name
         assignments["peak_calling_method"] = decision
         assignments["cluster_assignments"] = assignments["cluster_assignments"]+1
         #assignments['assignment'] = final_data['cluster_assignments']
-        if os.path.exists(out + "read_assignments.tsv") == False:
-            assignments[['name','read_id','counts','cluster_assignments',"outlier","peak_calling_method"]].to_csv(out + "read_assignments.tsv", sep="\t", index=False, mode="a")
+        if flanking_like_filter:
+            if os.path.exists(out + "read_assignments.tsv") == False:
+                assignments[['name','read_id','counts','cluster_assignments',"outlier","flanking_outlier","peak_calling_method"]].to_csv(out + "read_assignments.tsv", sep="\t", index=False, mode="a")
+            else:
+                assignments[['name','read_id','counts','cluster_assignments',"outlier","flanking_outlier","peak_calling_method"]].to_csv(out + "read_assignments.tsv", sep="\t", index=False, mode="a", header=None)
         else:
-            assignments[['name','read_id','counts','cluster_assignments',"outlier","peak_calling_method"]].to_csv(out + "read_assignments.tsv", sep="\t", index=False, mode="a", header=None)
+            if os.path.exists(out + "read_assignments.tsv") == False:
+                assignments[['name','read_id','counts','cluster_assignments',"outlier","peak_calling_method"]].to_csv(out + "read_assignments.tsv", sep="\t", index=False, mode="a")
+            else:
+                assignments[['name','read_id','counts','cluster_assignments',"outlier","peak_calling_method"]].to_csv(out + "read_assignments.tsv", sep="\t", index=False, mode="a", header=None)
     #add bandwidth column for kde calls
     curr_row['bandwidth'] = -1
     curr_row["peak_calling_method"] = decision
@@ -468,6 +482,11 @@ def main():
     parser.add_argument("--allele_specific_plots", help="Output allele-specific histograms with model of best fit", action='store_true')
     parser.add_argument("--discard_outliers", help="Discard outliers based on quantile", action='store_true')
     parser.add_argument("--filter_quantile", type=float, help="Float designating quantile of count frequency to discard when filtering outliers (default: %(default)s)", default=0.25)
+
+    #post read processing filters/options
+    parser.add_argument("--flanking_like_filter", help="If set, filter reads per target that are designated as outliers based on flanking sequence likelihood",action='store_true')
+    parser.add_argument("--stranded_report", help="If set, genotypes are called for each strand separately as well as together and strand bias is reported if found",action='store_true')
+
     #for debugging
     parser.add_argument("--cluster_only", help="Run clustering on output corresponding to required arguments, mostly for debugging past runs", action='store_true')
     parser.add_argument("--save_intermediates", help="Flag designating to save intermediate files such as model inputs, raw count files, and state sequence files", action='store_true')
@@ -571,7 +590,7 @@ def main():
     else:
         print("Invalid method inputed for peak calling, using auto...")
         targets["peak_call_method"] = targets.apply(decide_method,args=(args.out, out_count_name), axis=1)
-    geno_df = targets.apply(call_peaks, args=(args.out, out_count_name, args.output_hist,args.max_peaks,args.discard_outliers,args.filter_quantile,args.bootstrap, args.call_width, args.resample_size,args.allele_specific_plots,args.allele_specific_CIs, args.bandwidth,args.kernel), axis=1)
+    geno_df = targets.apply(call_peaks, args=(args.out, out_count_name, args.output_hist,args.max_peaks,args.discard_outliers,args.filter_quantile,args.bootstrap, args.call_width, args.resample_size,args.allele_specific_plots,args.allele_specific_CIs, args.bandwidth,args.kernel,args.flanking_like_filter), axis=1)
     #call original allele call procedure
     #geno_df = targets.apply(ratio_gmm_stats,axis=1,args=(args.out,out_count_name, args.output_hist,args.max_peaks,args.discard_outliers, args.bootstrap, args.call_width, args.resample_size,args.allele_specific_plots,args.allele_specific_CIs,args.filter_quantile))
     #geno_df.dropna(axis="rows",how="any", inplace=True)

@@ -11,14 +11,15 @@ import os
 import statistics as stat
 from collections import Counter
 
-from HMMSTR_utils.HMMSTR_utils import throw_low_cov, remove_outlier_IQR
+from HMMSTR_utils.HMMSTR_utils import throw_low_cov, remove_outlier_IQR, remove_flanking_outliers
 warnings.filterwarnings('ignore')
 
 class KDE_cluster:
-    def __init__(self, target, out, out_count_name, discard_outliers):
+    def __init__(self, target, out, out_count_name, discard_outliers,flanking_like_filter):
         self.name = target[0]
         self.out = out
         self.discard_outliers = discard_outliers #this will be used when we goto cluster
+        self.flanking_like_filter = flanking_like_filter
         out_count_file = out + "_" + self.name + out_count_name
         if os.path.exists(out_count_file):
             counts_data = pd.read_csv(out_count_file, sep=" ",header=None)
@@ -28,7 +29,7 @@ class KDE_cluster:
                 self.data = None
         else:
             self.data = None
-    def get_stats(self, plot_hists, filter_outliers=False, filter_quantile=0.25):
+    def get_stats(self, plot_hists, filter_outliers=False, filter_quantile=0.25,flanking_like_filter=False):
         '''
         Function to calculate summary stats for a single target
 
@@ -48,6 +49,10 @@ class KDE_cluster:
             filtered, outliers = remove_outlier_IQR(counts_data.counts, filter_quantile)
             #counts_data = counts_data[counts_data.counts.isin(filtered)]
         counts_data['outlier'] = np.where(counts_data.counts.isin(outliers),True , False)
+        #check for flanking likelihood outliers
+        if flanking_like_filter:
+            flanking_filtered, flanking_outliers = remove_flanking_outliers(counts_data)
+        counts_data['flanking_outlier'] = np.where(counts_data.read_id.isin(flanking_outliers),True , False)
         #testing out including plotting here, will need to add a flag
         if plot_hists:
             self.plot_stats(counts_data, self.out)
@@ -101,9 +106,18 @@ class KDE_cluster:
         '''
         #filter outliers if called for
         outliers = pd.Series()
+        flanking_outliers = pd.Series()
         if self.discard_outliers:
             filtered, outliers = remove_outlier_IQR(self.data.counts,filter_quantile)
             a = np.array(filtered).reshape(-1,1)
+        if self.flanking_like_filter:
+            flanking_filtered, flanking_outliers = remove_flanking_outliers(self.data)
+            #check if we also filtered outliers so we can do both
+            if self.discard_outliers:
+                a = np.array(flanking_filtered[flanking_filtered.counts.isin(filtered.unique())].counts).reshape(-1,1) #use reads that are both in both of our filtered sets
+            else:
+                a = np.array(flanking_filtered.counts).reshape(-1,1)
+
         else:
             a = np.array(self.data.counts).reshape(-1,1)
         if subset is not None:
@@ -307,8 +321,8 @@ class KDE_cluster:
                     fig.savefig(str(self.out + self.name + "_KDE.pdf"))
                 plt.show()
                 plt.clf()
-        return clusters, allele_calls, outliers
-    def assign_clusters(self, clusters, outliers):
+        return clusters, allele_calls, outliers, flanking_outliers
+    def assign_clusters(self, clusters, outliers, flanking_outliers):
         '''
         Function to assign individual reads to clusters determined by KDE
 
@@ -332,6 +346,7 @@ class KDE_cluster:
         labels['cluster_assignments'] = count_assignemnts.values()
         assignment_df = self.data.merge(labels, how = 'left', on = 'counts')
         assignment_df['outlier'] = np.where(assignment_df.counts.isin(outliers),True , False)
+        assignment_df['flanking_outlier'] = np.where(assignment_df.read_id.isin(flanking_outliers),True , False)
         return assignment_df
 
     #add bootstrapping to KDE class
@@ -350,7 +365,7 @@ class KDE_cluster:
             #sample up to the depth of the experiment with replacement
             curr_sample = filtered.sample(frac=1,axis=0, replace = True)
             #call gmm with original freqs on this subset
-            clusters, allele_calls, outliers = self.call_clusters(kernel="gaussian", bandwidth = 'scott', max_k = max_peaks, output_plots = False, subset=curr_sample, filter_quantile=0.25) 
+            clusters, allele_calls, outliers, flanking_outliers = self.call_clusters(kernel="gaussian", bandwidth = 'scott', max_k = max_peaks, output_plots = False, subset=curr_sample, filter_quantile=0.25) 
             #add current call to lists
             for j in range(1,max_peaks+1):
                 if ("H"+str(j)+":median") not in allele_calls.keys():
@@ -384,7 +399,7 @@ class KDE_cluster:
                 #sample up to the depth of the experiment with replacement
                 curr_sample = filtered.sample(frac=1,axis=0, replace = True)
                 #call gmm with original freqs on this subset
-                clusters, allele_calls, outliers = self.call_clusters(kernel="gaussian", bandwidth = 'scott', max_k = 1, output_plots = False, subset=curr_sample, filter_quantile=0.25)  #single allele bootstrapping
+                clusters, allele_calls, outliers, flanking_outliers = self.call_clusters(kernel="gaussian", bandwidth = 'scott', max_k = 1, output_plots = False, subset=curr_sample, filter_quantile=0.25)  #single allele bootstrapping
                 #add current call to lists
                 #call_lists["mean"].append(curr_row[0]["H1:mean"])
                 call_lists["median"].append(allele_calls["H1:median"])
