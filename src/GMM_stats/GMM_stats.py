@@ -39,7 +39,7 @@ class GMMStats:
         plt.show()
         plt.clf()
         return #currently does not work and isnt called
-    def get_stats(self, out_count_file, out, plot_hists, filter_outliers=False, filter_quantile=0.25, flanking_like_filter=False):
+    def get_stats(self, out_count_file, out, plot_hists, filter_outliers=False, filter_quantile=0.25, flanking_like_filter=False, curr_strand=None):
         '''
         Function to calculate summary stats for a single target
 
@@ -53,9 +53,14 @@ class GMMStats:
         #read output file
         counts_data = pd.read_csv(out_count_file, sep=" ",header=None)
         counts_data.columns = ["read_id","strand","align_score","neg_log_likelihood","subset_likelihood","repeat_likelihood","repeat_start","repeat_end","align_start", "align_end","counts"]
+        
+        if curr_strand is not None:
+            counts_data = counts_data[counts_data.strand == curr_strand]
+        
         counts_data['freq'] = counts_data.groupby(by='counts')['read_id'].transform('count')
         #ADDED outlier filtering
         outliers = []
+        flanking_outliers = []
         if filter_outliers:
             filtered, outliers = remove_outlier_IQR(counts_data.counts, filter_quantile)
             #counts_data = counts_data[counts_data.counts.isin(filtered)]

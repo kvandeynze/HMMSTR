@@ -15,7 +15,7 @@ from HMMSTR_utils.HMMSTR_utils import throw_low_cov, remove_outlier_IQR, remove_
 warnings.filterwarnings('ignore')
 
 class KDE_cluster:
-    def __init__(self, target, out, out_count_name, discard_outliers,flanking_like_filter):
+    def __init__(self, target, out, out_count_name, discard_outliers,flanking_like_filter,curr_strand=None):
         self.name = target[0]
         self.out = out
         self.discard_outliers = discard_outliers #this will be used when we goto cluster
@@ -25,6 +25,11 @@ class KDE_cluster:
             counts_data = pd.read_csv(out_count_file, sep=" ",header=None)
             counts_data.columns = ["read_id","strand","align_score","neg_log_likelihood","subset_likelihood","repeat_likelihood","repeat_start","repeat_end","align_start", "align_end","counts"]
             self.data = counts_data[counts_data.counts != 0] #discard 0 count reads
+            if curr_strand is not None:
+                self.strand = curr_strand
+                self.data = counts_data[counts_data.counts != 0][counts_data.strand == curr_strand] #if this is a stranded run, we only want to keep data from the current strand
+            else:
+                self.strand = None
             if self.data.empty:
                 self.data = None
         else:
@@ -45,6 +50,7 @@ class KDE_cluster:
         counts_data['freq'] = counts_data.groupby(by='counts')['read_id'].transform('count')
         #ADDED outlier filtering
         outliers = []
+        flanking_outliers=[]
         if filter_outliers:
             filtered, outliers = remove_outlier_IQR(counts_data.counts, filter_quantile)
             #counts_data = counts_data[counts_data.counts.isin(filtered)]
@@ -72,7 +78,10 @@ class KDE_cluster:
         plt.xlabel("Repeat count")
         plt.ylabel("Number of reads")
         fig = plt.gcf()
-        fig.savefig(str(out +self.name+ "_supporting_reads_hist.pdf"))
+        if self.strand is not None:
+            fig.savefig(str(out +self.name+ "_"+ self.strand +"_supporting_reads_hist.pdf"))
+        else:
+            fig.savefig(str(out +self.name+"_supporting_reads_hist.pdf"))
         plt.show()
         plt.clf()
         return #currently does not work and isnt called
