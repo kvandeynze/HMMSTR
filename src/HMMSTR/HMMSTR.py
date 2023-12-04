@@ -73,7 +73,7 @@ def build_all(curr_target, out, background,alphabet,transitions,mismatch_probs, 
     # with open(out + "_" + name + "_E.pkl", "wb") as outfile:
     #     pkl.dump(curr_hmm.E, outfile)
     return
-def process_read(header,seq,hmm_file,rev_hmm_file,hidden_states,hidden_states_rev,out,targets, build_pre, mode, cutoff, k, w, use_full_seq, flanking_size):
+def process_read(header,seq,hmm_file,rev_hmm_file,hidden_states,hidden_states_rev,out,targets, build_pre, mode, cutoff, k, w, use_full_seq, flanking_size,output_labelled_seqs):
     '''
     Wrapper function to call all Process_Read methods. This will initialize all operations
     for a given read including (1) alignment (2) target identification and filtering 
@@ -115,7 +115,7 @@ def process_read(header,seq,hmm_file,rev_hmm_file,hidden_states,hidden_states_re
     #     print(curr_read.suffix_df) 
     curr_read.assign_targets(targets) #sets target_info for current read, this is a dictionary of keys=target name and values=info, all information needed for the target
     #The check for no assigned targets is in run_vit
-    targets_found = curr_read.run_viterbi(hmm_file=hmm_file,rev_hmm_file=rev_hmm_file,hidden_states=hidden_states, rev_states=hidden_states_rev, out=out,build_pre=build_pre, prefix_idx = flanking_size)
+    targets_found = curr_read.run_viterbi(hmm_file=hmm_file,rev_hmm_file=rev_hmm_file,hidden_states=hidden_states, rev_states=hidden_states_rev, out=out,build_pre=build_pre, prefix_idx = flanking_size,output_labelled_seqs=output_labelled_seqs)
     return
 def ratio_gmm_stats(row, out, out_count_name,plot_hists,max_peaks, filter_outliers, bootstrap, CI_width, resample_size, allele_specific_plots,allele_specif_CIs,filter_quantile): 
     '''
@@ -276,7 +276,7 @@ def call_peaks(row, out, out_count_name, plot_hists, max_peaks, filter_outliers=
             return final
         #get read info tsv
         curr_kde.data = curr_kde.get_stats(plot_hists, filter_outliers, filter_quantile, flanking_like_filter)
-        curr_kde.data.to_csv(out +"_"+ curr_kde.name +"_final_out.tsv", index = False, sep="\t")
+        #curr_kde.data.to_csv(out +"_"+ curr_kde.name +"_final_out.tsv", index = False, sep="\t") # combined with read_assignments
         
         clusters, allele_calls, outliers, flanking_outliers = curr_kde.call_clusters(kernel=kernel, bandwidth=bandwidth,max_k=max_peaks, output_plots =  plot_hists, filter_quantile=filter_quantile)
         assignments = curr_kde.assign_clusters(clusters,outliers, flanking_outliers)
@@ -289,17 +289,18 @@ def call_peaks(row, out, out_count_name, plot_hists, max_peaks, filter_outliers=
         #write out read assignments
         assignments["name"] = curr_kde.name
         assignments["peak_calling_method"] = decision
+        
         #only output flanking outlier if applicable
         if flanking_like_filter:
             if os.path.exists(out + "read_assignments.tsv") == False:
-                assignments[['name','read_id','counts','cluster_assignments',"outlier","flanking_outlier","peak_calling_method"]].to_csv(out + "read_assignments.tsv", sep="\t", index=False, mode="a")
+                assignments[['name','read_id','strand', 'align_score','neg_log_likelihood', 'subset_likelihood', 'repeat_likelihood','repeat_start', 'repeat_end', 'align_start', 'align_end','counts', 'freq','cluster_assignments',"outlier","flanking_outlier","peak_calling_method"]].to_csv(out + "_read_assignments.tsv", sep="\t", index=False, mode="a")
             else:
-                assignments[['name','read_id','counts','cluster_assignments',"outlier","flanking_outlier","peak_calling_method"]].to_csv(out + "read_assignments.tsv", sep="\t", index=False, mode="a", header=None)
+                assignments[['name','read_id','strand', 'align_score','neg_log_likelihood', 'subset_likelihood', 'repeat_likelihood','repeat_start', 'repeat_end', 'align_start', 'align_end','counts', 'freq','cluster_assignments',"outlier","flanking_outlier","peak_calling_method"]].to_csv(out + "_read_assignments.tsv", sep="\t", index=False, mode="a", header=None)
         else:
             if os.path.exists(out + "read_assignments.tsv") == False:
-                assignments[['name','read_id','counts','cluster_assignments',"outlier","peak_calling_method"]].to_csv(out + "read_assignments.tsv", sep="\t", index=False, mode="a")
+                assignments[['name','read_id','strand', 'align_score','neg_log_likelihood', 'subset_likelihood', 'repeat_likelihood','repeat_start', 'repeat_end', 'align_start', 'align_end','counts', 'freq','cluster_assignments',"outlier","peak_calling_method"]].to_csv(out + "_read_assignments.tsv", sep="\t", index=False, mode="a")
             else:
-                assignments[['name','read_id','counts','cluster_assignments',"outlier","peak_calling_method"]].to_csv(out + "read_assignments.tsv", sep="\t", index=False, mode="a", header=None)
+                assignments[['name','read_id','strand', 'align_score','neg_log_likelihood', 'subset_likelihood', 'repeat_likelihood','repeat_start', 'repeat_end', 'align_start', 'align_end','counts', 'freq','cluster_assignments',"outlier","peak_calling_method"]].to_csv(out + "_read_assignments.tsv", sep="\t", index=False, mode="a", header=None)
         
         #account for differing column number for less than max_k peaks
         #print("unique assignements: ", assignments.assignment.unique())
@@ -381,7 +382,7 @@ def call_peaks(row, out, out_count_name, plot_hists, max_peaks, filter_outliers=
         gmm_stats = GMMStats(target_row=row) #contains all target attributes as well as E and A dictionaries
         final_data = gmm_stats.get_stats(out_count_file, out,plot_hists, filter_outliers, filter_quantile=filter_quantile,flanking_like_filter=flanking_like_filter)
     
-        final_data.to_csv(out +"_"+ gmm_stats.name +"_final_out.tsv", index = False, sep="\t")
+        #final_data.to_csv(out +"_"+ gmm_stats.name +"_final_out.tsv", index = False, sep="\t")
     
         #NEW check the range of the data to determine if we should be calling this homozygous
         # if final_data[final_data.outlier == False].counts.max()-final_data[final_data.outlier == False].counts.min() < 2:
@@ -403,21 +404,22 @@ def call_peaks(row, out, out_count_name, plot_hists, max_peaks, filter_outliers=
                 curr_row["H"+ str(assignment+1)+":median_CI_allele_specific"] = median_CIs
     
         #write out cluster assignments to file
-        assignments = pd.merge(left = final_data2[['read_id','counts','cluster_assignments']],right=final_data[["read_id","counts","outlier","flanking_outlier"]], on = ["read_id","counts"], how="right")
+        #assignments = pd.merge(left = final_data2[['read_id','counts','cluster_assignments']],right=final_data[["read_id","counts","outlier","flanking_outlier"]], on = ["read_id","counts"], how="right")
+        assignments = pd.merge(left = final_data2[['read_id','counts','cluster_assignments']],right=final_data, on = ["read_id","counts"], how="right")
         assignments["name"] = gmm_stats.name
         assignments["peak_calling_method"] = decision
         assignments["cluster_assignments"] = assignments["cluster_assignments"]+1
         #assignments['assignment'] = final_data['cluster_assignments']
         if flanking_like_filter:
             if os.path.exists(out + "read_assignments.tsv") == False:
-                assignments[['name','read_id','counts','cluster_assignments',"outlier","flanking_outlier","peak_calling_method"]].to_csv(out + "read_assignments.tsv", sep="\t", index=False, mode="a")
+                assignments[['name','read_id','strand', 'align_score','neg_log_likelihood', 'subset_likelihood', 'repeat_likelihood','repeat_start', 'repeat_end', 'align_start', 'align_end','counts', 'freq','cluster_assignments',"outlier","flanking_outlier","peak_calling_method"]].to_csv(out + "_read_assignments.tsv", sep="\t", index=False, mode="a")
             else:
-                assignments[['name','read_id','counts','cluster_assignments',"outlier","flanking_outlier","peak_calling_method"]].to_csv(out + "read_assignments.tsv", sep="\t", index=False, mode="a", header=None)
+                assignments[['name','read_id','strand', 'align_score','neg_log_likelihood', 'subset_likelihood', 'repeat_likelihood','repeat_start', 'repeat_end', 'align_start', 'align_end', 'counts','freq','cluster_assignments',"outlier","flanking_outlier","peak_calling_method"]].to_csv(out + "_read_assignments.tsv", sep="\t", index=False, mode="a", header=None)
         else:
             if os.path.exists(out + "read_assignments.tsv") == False:
-                assignments[['name','read_id','counts','cluster_assignments',"outlier","peak_calling_method"]].to_csv(out + "read_assignments.tsv", sep="\t", index=False, mode="a")
+                assignments[['name','read_id','strand', 'align_score','neg_log_likelihood', 'subset_likelihood', 'repeat_likelihood','repeat_start', 'repeat_end', 'align_start', 'align_end', 'counts','freq','cluster_assignments',"outlier","peak_calling_method"]].to_csv(out + "_read_assignments.tsv", sep="\t", index=False, mode="a")
             else:
-                assignments[['name','read_id','counts','cluster_assignments',"outlier","peak_calling_method"]].to_csv(out + "read_assignments.tsv", sep="\t", index=False, mode="a", header=None)
+                assignments[['name','read_id','strand', 'align_score','neg_log_likelihood', 'subset_likelihood', 'repeat_likelihood','repeat_start', 'repeat_end', 'align_start', 'align_end', 'counts','freq','cluster_assignments',"outlier","peak_calling_method"]].to_csv(out + "_read_assignments.tsv", sep="\t", index=False, mode="a", header=None)
     #add bandwidth column for kde calls
     curr_row['bandwidth'] = -1
     curr_row["peak_calling_method"] = decision
@@ -457,16 +459,16 @@ def call_peaks_stranded(row, out, out_count_name, plot_hists, max_peaks, filter_
             #continue #FIXME test this out
             return final #TODO figure out how to return in a stranded manner
         #get read info tsv
-        curr_kde.data = curr_kde.get_stats(plot_hists, filter_outliers, filter_quantile, flanking_like_filter)
+        curr_kde.data = curr_kde.get_stats(plot_hists, filter_outliers, filter_quantile, flanking_like_filter, strand=strand)
         curr_kde.data.to_csv(out +"_"+ curr_kde.name +"_"+strand+"_final_out.tsv", index = False, sep="\t") #stranded out
         
-        clusters, allele_calls, outliers, flanking_outliers = curr_kde.call_clusters(kernel=kernel, bandwidth=bandwidth,max_k=max_peaks, output_plots =  plot_hists, filter_quantile=filter_quantile)
+        clusters, allele_calls, outliers, flanking_outliers = curr_kde.call_clusters(kernel=kernel, bandwidth=bandwidth,max_k=max_peaks, output_plots =  plot_hists, filter_quantile=filter_quantile,strand=strand)
         assignments = curr_kde.assign_clusters(clusters,outliers, flanking_outliers)
 
         #plot allele_specific plots if applicable
         if allele_specific_plots:
             for assignment in assignments.cluster_assignments.unique():
-                curr_kde.call_clusters(kernel=kernel, bandwidth=bandwidth,max_k=1, output_plots =  True, subset=assignments[assignments.cluster_assignments == assignment], allele_specific=True, allele=assignment, filter_quantile=filter_quantile)
+                curr_kde.call_clusters(kernel=kernel, bandwidth=bandwidth,max_k=1, output_plots =  True, subset=assignments[assignments.cluster_assignments == assignment], allele_specific=True, allele=assignment, filter_quantile=filter_quantile, strand=strand)
     
         #write out read assignments
         assignments["name"] = curr_kde.name
@@ -567,7 +569,7 @@ def call_peaks_stranded(row, out, out_count_name, plot_hists, max_peaks, filter_
         
         #peak calling
         final_data2 = final_data[final_data.outlier == False][final_data.flanking_outlier == False][final_data.counts != 0].copy()
-        curr_row, final_data2['cluster_assignments'] = gmm_stats.call_peaks(final_data2, out, max_peaks, plot=plot_hists, save_allele_plots = allele_specific_plots)
+        curr_row, final_data2['cluster_assignments'] = gmm_stats.call_peaks(final_data2, out, max_peaks, plot=plot_hists, save_allele_plots = allele_specific_plots, strand=strand)
         if curr_row is None:
             print("current row doesnt exist")
             return
@@ -632,14 +634,19 @@ def main():
     parser.add_argument("--custom_RM", type=str, help= 'TSV of custom repeat match state probability matrix, see format specifications, used for motif mosacism, currently supports single target', default=None)
     parser.add_argument("--hmm_pre", type=str,help="Prefix for files produced by build function, use if running the same targets across multiple input files") #if I clean up the directory after I will get rid of this potentially
     #defaults subject to change
-    parser.add_argument("--output_hist",help="Output supporting read histogram", action='store_true')
+    #parser.add_argument("--output_hist",help="Output supporting read histogram", action='store_true')
+
+    #TODO change all output_hist flags to output_plots and wrap additional plots in this flag, also make plots directory at out prefix
+    parser.add_argument("--output_plots",help="Output plots, default outputs supporting read histograms and model of best fit plots per target", action='store_true')
+    parser.add_argument("--output_labelled_seqs",help="Output the model path through prefix, repeat, and suffix identified per read as context_labelled.txt per target", action='store_true')
+
     #parser.add_argument("--exclude_sd", type=int,help="Number of standard deviations from the mean of tallest peaks to exclude neighboring peaks", default=2)
     parser.add_argument("--max_peaks", type=int,help="Maximum number of peaks to calculate AIC and BIC for in peak calling (default: %(default)s)",default=2)
     parser.add_argument("--cpus", type=int,help="Number of cpus to use. If none given, half of available cpus used (default: %(default)s)",default=int(mp.cpu_count()/2))
     parser.add_argument("--flanking_size", type=int,help="Number of basepairs flanking repeat to encode in model, longer recommended for highly repeatitive regions (default: %(default)s)",default=30)
     #alignment parameters
     parser.add_argument("--mode", type=str,help="map-ont (Nanopore), pb (PacBio), or sr (short accurate reads, use for accurate short flanking sequence input) (default: %(default)s)",default="map-ont")
-    parser.add_argument("--cutoff", type=int,help="MapQ cutoff for prefix and suffix alignment (default: %(default)s)",default=30)
+    parser.add_argument("--mapq_cutoff", type=int,help="MapQ cutoff for prefix and suffix alignment (default: %(default)s)",default=30)
     parser.add_argument("--k", type=int,help="Kmer parameter to be passed to mappy",default=None)
     parser.add_argument("--w", type=int,help="Window parameter to be passed to mappy",default=None)
     parser.add_argument("--use_full_read", help="Flag to not subset the read by the alignment, optimal for reads with short prefix and suffix",action='store_true')
@@ -670,6 +677,14 @@ def main():
 
     args = parser.parse_args()
 
+    if args.output_plots: #FIXME check if directory already exists
+        directory = args.out + "_plots"
+        os.mkdir(directory) 
+        print("Directory '% s' created" % directory)
+    if args.output_labelled_seqs: #FIXME check if directory already exists
+        directory = args.out + "_labelled_seqs"
+        os.mkdir(directory) 
+        print("Directory '% s' created" % directory)
     #check input mode and check if inputs compatible for coordinates
     if args.subcommand == 'coordinates':
         #check inputs
@@ -737,14 +752,14 @@ def main():
         if args.inFile.endswith('gz'):
             #gzipped file
             if args.inFile.endswith("fasta.gz") or args.inFile.endswith("fa.gz"): #fasta file
-                [pool.apply_async(process_read, args=(header,seq,hmm_file,rev_hmm_file,hidden_states,hidden_states_rev,args.out,targets, build_pre, args.mode, args.cutoff, args.k, args.w, args.use_full_read, args.flanking_size)) for header, seq, bool in read_fasta(gzip.open(args.inFile,'rt'))]
+                [pool.apply_async(process_read, args=(header,seq,hmm_file,rev_hmm_file,hidden_states,hidden_states_rev,args.out,targets, build_pre, args.mode, args.mapq_cutoff, args.k, args.w, args.use_full_read, args.flanking_size, args.output_labelled_seqs)) for header, seq, bool in read_fasta(gzip.open(args.inFile,'rt'))]
             elif args.inFile.endswith("fastq.gz") or args.inFile.endswith("fq.gz"): #fastq
-                [pool.apply_async(process_read, args=(header,seq,hmm_file,rev_hmm_file,hidden_states,hidden_states_rev,args.out,targets, build_pre, args.mode, args.cutoff, args.k, args.w, args.use_full_read, args.flanking_size)) for header, seq, bool in read_fastq(gzip.open(args.inFile,'rt'))]
+                [pool.apply_async(process_read, args=(header,seq,hmm_file,rev_hmm_file,hidden_states,hidden_states_rev,args.out,targets, build_pre, args.mode, args.mapq_cutoff, args.k, args.w, args.use_full_read, args.flanking_size,args.output_labelled_seqs)) for header, seq, bool in read_fastq(gzip.open(args.inFile,'rt'))]
         else:
             if args.inFile.endswith('a'): #fasta file
-                [pool.apply_async(process_read, args=(header,seq,hmm_file,rev_hmm_file,hidden_states,hidden_states_rev,args.out,targets, build_pre, args.mode, args.cutoff, args.k, args.w, args.use_full_read,args.flanking_size)) for header, seq, bool in read_fasta(open(args.inFile))]
+                [pool.apply_async(process_read, args=(header,seq,hmm_file,rev_hmm_file,hidden_states,hidden_states_rev,args.out,targets, build_pre, args.mode, args.mapq_cutoff, args.k, args.w, args.use_full_read,args.flanking_size,args.output_labelled_seqs)) for header, seq, bool in read_fasta(open(args.inFile))]
             elif args.inFile.endswith('q'): #fastq
-                [pool.apply_async(process_read, args=(header,seq,hmm_file,rev_hmm_file,hidden_states,hidden_states_rev,args.out,targets, build_pre, args.mode, args.cutoff, args.k, args.w, args.use_full_read,args.flanking_size)) for header, seq, bool in read_fastq(open(args.inFile))]
+                [pool.apply_async(process_read, args=(header,seq,hmm_file,rev_hmm_file,hidden_states,hidden_states_rev,args.out,targets, build_pre, args.mode, args.mapq_cutoff, args.k, args.w, args.use_full_read,args.flanking_size,args.output_labelled_seqs)) for header, seq, bool in read_fastq(open(args.inFile))]
         pool.close()
         pool.join()
         pool_end = perf_counter()
@@ -770,7 +785,7 @@ def main():
 
     #default output
     if args.stranded_report == False:
-        geno_df = targets.apply(call_peaks, args=(args.out, out_count_name, args.output_hist,args.max_peaks,args.discard_outliers,args.filter_quantile,args.bootstrap, args.call_width, args.resample_size,args.allele_specific_plots,args.allele_specific_CIs, args.bandwidth,args.kernel,args.flanking_like_filter), axis=1)
+        geno_df = targets.apply(call_peaks, args=(args.out, out_count_name, args.output_plots,args.max_peaks,args.discard_outliers,args.filter_quantile,args.bootstrap, args.call_width, args.resample_size,args.allele_specific_plots,args.allele_specific_CIs, args.bandwidth,args.kernel,args.flanking_like_filter), axis=1)
         #call original allele call procedure
         #geno_df = targets.apply(ratio_gmm_stats,axis=1,args=(args.out,out_count_name, args.output_hist,args.max_peaks,args.discard_outliers, args.bootstrap, args.call_width, args.resample_size,args.allele_specific_plots,args.allele_specific_CIs,args.filter_quantile))
         #geno_df.dropna(axis="rows",how="any", inplace=True)
@@ -784,8 +799,8 @@ def main():
             print(geno_df)
             print("Results are not a DataFrame! Something went wrong...")
     else: #stranded output
-        geno_forward_df = targets.apply(call_peaks_stranded, args=(args.out, out_count_name, args.output_hist,args.max_peaks,args.discard_outliers,args.filter_quantile,args.bootstrap, args.call_width, args.resample_size,args.allele_specific_plots,args.allele_specific_CIs, args.bandwidth,args.kernel,args.flanking_like_filter,"forward"), axis=1)
-        geno_reverse_df = targets.apply(call_peaks_stranded, args=(args.out, out_count_name, args.output_hist,args.max_peaks,args.discard_outliers,args.filter_quantile,args.bootstrap, args.call_width, args.resample_size,args.allele_specific_plots,args.allele_specific_CIs, args.bandwidth,args.kernel,args.flanking_like_filter, "reverse"), axis=1)
+        geno_forward_df = targets.apply(call_peaks_stranded, args=(args.out, out_count_name, args.output_plots,args.max_peaks,args.discard_outliers,args.filter_quantile,args.bootstrap, args.call_width, args.resample_size,args.allele_specific_plots,args.allele_specific_CIs, args.bandwidth,args.kernel,args.flanking_like_filter,"forward"), axis=1)
+        geno_reverse_df = targets.apply(call_peaks_stranded, args=(args.out, out_count_name, args.output_plots,args.max_peaks,args.discard_outliers,args.filter_quantile,args.bootstrap, args.call_width, args.resample_size,args.allele_specific_plots,args.allele_specific_CIs, args.bandwidth,args.kernel,args.flanking_like_filter, "reverse"), axis=1)
         
         #concat stranded results
         geno_df = pd.concat([geno_forward_df,geno_reverse_df]).sort_values(by="name")

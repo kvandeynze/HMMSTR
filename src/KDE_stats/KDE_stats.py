@@ -34,7 +34,7 @@ class KDE_cluster:
                 self.data = None
         else:
             self.data = None
-    def get_stats(self, plot_hists, filter_outliers=False, filter_quantile=0.25,flanking_like_filter=False):
+    def get_stats(self, plot_hists, filter_outliers=False, filter_quantile=0.25,flanking_like_filter=False, strand=None):
         '''
         Function to calculate summary stats for a single target
 
@@ -61,9 +61,9 @@ class KDE_cluster:
         counts_data['flanking_outlier'] = np.where(counts_data.read_id.isin(flanking_outliers),True , False)
         #testing out including plotting here, will need to add a flag
         if plot_hists:
-            self.plot_stats(counts_data, self.out)
+            self.plot_stats(counts_data, self.out, strand)
         return counts_data
-    def plot_stats(self,counts_data,out):
+    def plot_stats(self,counts_data,out, strand=None):
         '''
         plot the histograms and median likelihood ratio line plots (hopefully with error bars)
 
@@ -79,13 +79,13 @@ class KDE_cluster:
         plt.ylabel("Number of reads")
         fig = plt.gcf()
         if self.strand is not None:
-            fig.savefig(str(out +self.name+ "_"+ self.strand +"_supporting_reads_hist.pdf"))
+            fig.savefig(str(self.out + "_plots/"+self.name+ "_"+ self.strand +"_supporting_reads_hist.pdf"))
         else:
-            fig.savefig(str(out +self.name+"_supporting_reads_hist.pdf"))
+            fig.savefig(str(self.out + "_plots/"+self.name+"_supporting_reads_hist.pdf"))
         plt.show()
         plt.clf()
         return #currently does not work and isnt called
-    def call_clusters(self,kernel="gaussian", bandwidth = 'scott', max_k = 2, output_plots = False, subset=None, filter_quantile=0.25, allele_specific = False, allele = None):
+    def call_clusters(self,kernel="gaussian", bandwidth = 'scott', max_k = 2, output_plots = False, subset=None, filter_quantile=0.25, allele_specific = False, allele = None, strand=None):
         '''
         This function uses kernal density estimation to resolve alleles. It is ideal when data is normally distributed
         and has a relatively small range or overlapping count distributions
@@ -271,12 +271,18 @@ class KDE_cluster:
                     plt.vlines(x = allele_calls["H1:median"], ymin=ymin, ymax=ymax,linewidth=2, color='purple',linestyle="dashed",label="Median")
                     plt.legend()  
                     fig = plt.gcf()
-                    fig.savefig(str(self.out + "_" + self.name + "_allele_"+ allele+"_KDE.pdf"))
+                    if strand is not None:
+                        fig.savefig(str(self.out + "_plots/"+self.name +"_" +strand+"_allele_"+ allele+"_KDE.pdf"))
+                    else:
+                        fig.savefig(str(self.out + "_plots/"+self.name + "_allele_"+ allele+"_KDE.pdf"))
                 else:
                     plt.title(self.name + " KDE")
                     plt.legend()  
                     fig = plt.gcf()
-                    fig.savefig(str(self.out + self.name + "_KDE.pdf"))
+                    if strand is not None:
+                        fig.savefig(str(self.out + "_plots/"+self.name +"_" +strand+ "_KDE.pdf"))
+                    else:
+                        fig.savefig(str(self.out + "_plots/"+self.name + "_KDE.pdf"))
                 plt.show()
                 plt.clf()
             elif len(mi) == 1:
@@ -296,12 +302,19 @@ class KDE_cluster:
                     plt.vlines(x = allele_calls["H1:median"], ymin=ymin, ymax=ymax,linewidth=2, color='purple',linestyle="dashed",label="Median")
                     plt.legend()  
                     fig = plt.gcf()
-                    fig.savefig(str(self.out + "_" + self.name + "_allele_"+ allele+"_KDE.pdf"))
+                    if strand is not None:
+                        fig.savefig(str(self.out + "_plots/"+ self.name +"_"+ strand+"_allele_"+ allele+"_KDE.pdf"))
+                    else:
+                        fig.savefig(str(self.out + "_plots/"+ self.name + "_allele_"+ allele+"_KDE.pdf"))
+
                 else:
                     plt.title(self.name + " KDE")
                     plt.legend()  
                     fig = plt.gcf()
-                    fig.savefig(str(self.out + self.name + "_KDE.pdf"))
+                    if strand is not None:
+                        fig.savefig(str(self.out + "_plots/"+ self.name +"_"+ strand+ "_KDE.pdf"))
+                    else:
+                        fig.savefig(str(self.out + "_plots/"+ self.name + "_KDE.pdf"))
                 plt.show()
                 plt.clf()
             #dynamically print clusters
@@ -322,12 +335,19 @@ class KDE_cluster:
                     plt.vlines(x = allele_calls["H1:median"], ymin=ymin, ymax=ymax,linewidth=2, color='purple',linestyle="dashed",label="Median")
                     plt.legend()  
                     fig = plt.gcf()
-                    fig.savefig(str(self.out + "_" + self.name + "_allele_"+ allele+"_KDE.pdf"))
+                    if strand is not None:
+                        fig.savefig(str(self.out + "_plots/"+self.name + "_"+ strand+"_allele_"+ allele+"_KDE.pdf"))
+                    else:
+                        fig.savefig(str(self.out + "_plots/"+self.name + "_allele_"+ allele+"_KDE.pdf"))
+
                 else:
                     plt.title(self.name + " KDE")
                     plt.legend()  
                     fig = plt.gcf()
-                    fig.savefig(str(self.out + self.name + "_KDE.pdf"))
+                    if strand is not None:
+                        fig.savefig(str(self.out + "_plots/"+ self.name + "_"+ strand+"_KDE.pdf"))
+                    else:
+                        fig.savefig(str(self.out + "_plots/"+ self.name + "_KDE.pdf"))
                 plt.show()
                 plt.clf()
         return clusters, allele_calls, outliers, flanking_outliers
@@ -353,7 +373,8 @@ class KDE_cluster:
         labels = pd.DataFrame()
         labels['counts'] = count_assignemnts.keys()
         labels['cluster_assignments'] = count_assignemnts.values()
-        assignment_df = self.data.merge(labels, how = 'left', on = 'counts')
+        # TODO figure out if we want this to be consistent with gmm assignment output or if this is fine since we label outliers
+        assignment_df = self.data.merge(labels, how = 'left', on = 'counts') #I changed this to not assign a cluster to reads that are outliers
         assignment_df['outlier'] = np.where(assignment_df.counts.isin(outliers),True , False)
         assignment_df['flanking_outlier'] = np.where(assignment_df.read_id.isin(flanking_outliers),True , False)
         return assignment_df

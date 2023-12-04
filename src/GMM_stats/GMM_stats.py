@@ -20,7 +20,7 @@ class GMMStats:
         self.repeat = target_row[2].rstrip().upper()
         self.suffix = target_row[3].rstrip().upper()[:30]
     
-    def plot_stats(self,counts_data,out):
+    def plot_stats(self,counts_data,out, strand=None):
         '''
         plot the histograms and median likelihood ratio line plots (hopefully with error bars)
 
@@ -35,7 +35,10 @@ class GMMStats:
         plt.xlabel("Repeat count")
         plt.ylabel("Number of reads")
         fig = plt.gcf()
-        fig.savefig(str(out +self.name+ "_supporting_reads_hist.pdf"))
+        if strand is not None:
+            fig.savefig(str(out + "_plots/"+self.name+ "_"+strand+"_supporting_reads_hist.pdf"))
+        else:
+            fig.savefig(str(out + "_plots/"+self.name+ "_supporting_reads_hist.pdf"))
         plt.show()
         plt.clf()
         return #currently does not work and isnt called
@@ -70,10 +73,10 @@ class GMMStats:
         counts_data['flanking_outlier'] = np.where(counts_data.read_id.isin(flanking_outliers),True , False)
         #testing out including plotting here, will need to add a flag
         if plot_hists:
-            self.plot_stats(counts_data, out)
+            self.plot_stats(counts_data, out, curr_strand)
         return counts_data
 
-    def call_peaks(self,X_orig,out, num_max_peaks, plot=True, save_allele_plots = True):
+    def call_peaks(self,X_orig,out, num_max_peaks, plot=True, save_allele_plots = True, strand=None):
         # https://www.cbrinton.net/ECE20875-2020-Spring/W11/gmms_notebook.pdf
         rng = np.random.RandomState(seed=1)
 
@@ -177,11 +180,17 @@ class GMMStats:
                 if show_legend:
                     ax.legend()
                 if not subplot: #save full peaks plot
-                    plt.savefig(out + self.name + "peaks.pdf",bbox_inches='tight')
+                    if strand is not None:
+                        plt.savefig(out + "_plots/"+ self.name +"_"+strand+ "peaks.pdf",bbox_inches='tight')
+                    else:
+                        plt.savefig(out + "_plots/"+ self.name + "peaks.pdf",bbox_inches='tight')
                     plt.show()
                     plt.clf()
                 else:
-                    plt.savefig(out + self.name + "allele_"+ str(i+1)+".pdf",bbox_inches='tight')
+                    if strand is not None:
+                        plt.savefig(out + "_plots/"+ self.name + "_"+ strand+"allele_"+ str(i+1)+".pdf",bbox_inches='tight')
+                    else:
+                        plt.savefig(out + "_plots/"+ self.name + "allele_"+ str(i+1)+".pdf",bbox_inches='tight')
                     plt.show()
                     plt.clf()
                 plt.show()
@@ -200,7 +209,10 @@ class GMMStats:
             plt.legend()
             plt.tight_layout()
             plt.title(self.name+": AIC and BIC")
-            plt.savefig(out + self.name + "AIC_BIC.pdf",bbox_inches='tight')
+            if strand is not None:
+                plt.savefig(out + "_plots/"+ self.name +"_"+strand+ "_AIC_BIC.pdf",bbox_inches='tight')
+            else:
+                plt.savefig(out + "_plots/"+ self.name +"_AIC_BIC.pdf",bbox_inches='tight')
             plt.show()
             plt.clf()
             fig = plt.gcf()
