@@ -140,11 +140,11 @@ def ratio_gmm_stats(row, out, out_count_name,plot_hists,max_peaks, filter_outlie
         # returning null at the beginning of the run may be causing issues with apply, try returning a null row of the right dimensions
         curr_dict = {"name":name}
         for i in range(1,max_peaks+1):
-            #curr_mean = "H"+str(i)+":mean"
-            curr_median = "H"+str(i)+":median"
-            curr_mode = "H"+str(i)+":mode"
-            curr_sd = "H" + str(i) + ":SD"
-            curr_support = "H" + str(i) + ":supporting_reads"
+            #curr_mean = "A"+str(i)+":mean"
+            curr_median = "A"+str(i)+":median"
+            curr_mode = "A"+str(i)+":mode"
+            curr_sd = "A" + str(i) + ":SD"
+            curr_support = "A" + str(i) + ":supporting_reads"
             #if curr_mean not in curr_dict.keys():
              #   curr_dict[curr_mean] = 0
             if curr_median not in curr_dict.keys():
@@ -155,14 +155,14 @@ def ratio_gmm_stats(row, out, out_count_name,plot_hists,max_peaks, filter_outlie
                 curr_dict[curr_sd] = 0
             if curr_support not in curr_dict.keys():
                 curr_dict[curr_support] = 0
-            #curr_dict["H"+str(i)] = -1
+            #curr_dict["A"+str(i)] = -1
             curr_dict["num_supporting_reads"] = 0
 
             #check if we were suppose to bootstrap for this run so we can return the correct number of columns
             if bootstrap:
-                curr_dict["H"+str(i)+":median_CI"] = None
+                curr_dict["A"+str(i)+":median_CI"] = None
             if allele_specif_CIs:
-                curr_dict["H"+ str(i)+":median_CI_allele_specific"] = None
+                curr_dict["A"+ str(i)+":median_CI_allele_specific"] = None
         return pd.Series(curr_dict)
     #initialize GMMStats object
     gmm_stats = GMMStats(target_row=row) #contains all target attributes as well as E and A dictionaries
@@ -181,7 +181,7 @@ def ratio_gmm_stats(row, out, out_count_name,plot_hists,max_peaks, filter_outlie
         curr_row, cluster_assignments_bootstrap = gmm_stats.bootstrap_gmm(curr_row,final_data[final_data.outlier == False], resample_size, CI_width, max_peaks, out)
     if allele_specif_CIs:
         for assignment in final_data['cluster_assignments'].unique():
-            curr_row["H"+ str(assignment+1)+":median_CI_allele_specific"] = gmm_stats.bootstrap_gmm_allele_specific(final_data[final_data.cluster_assignments == assignment],resample_size,CI_width,out)
+            curr_row["A"+ str(assignment+1)+":median_CI_allele_specific"] = gmm_stats.bootstrap_gmm_allele_specific(final_data[final_data.cluster_assignments == assignment],resample_size,CI_width,out)
 
     #write out cluster assignments to file
     assignments = final_data[['read_id','counts']]
@@ -261,14 +261,14 @@ def call_peaks(row, out, out_count_name, plot_hists, max_peaks, filter_outliers=
             allele_calls['bandwidth'] = -1
             allele_calls["peak_calling_method"] = -1
             for i in range(max_peaks):
-                allele_calls["H"+str(i + 1)+":median"] = 0
-                allele_calls["H"+str(i + 1)+":mode"] = 0
-                allele_calls["H"+str(i + 1)+":supporting_reads"] = 0
-                allele_calls["H"+str(i+1)+":SD"] = 0
+                allele_calls["A"+str(i + 1)+":median"] = 0
+                allele_calls["A"+str(i + 1)+":mode"] = 0
+                allele_calls["A"+str(i + 1)+":supporting_reads"] = 0
+                allele_calls["A"+str(i+1)+":SD"] = 0
                 if bootstrap:
-                    allele_calls["H"+str(i)+":median_CI"] = (0,0)
+                    allele_calls["A"+str(i)+":median_CI"] = (0,0)
                 if allele_specif_CIs:
-                    allele_calls["H"+ str(i+1)+":median_CI_allele_specific"] = (0,0)
+                    allele_calls["A"+ str(i+1)+":median_CI_allele_specific"] = (0,0)
             allele_calls_series = pd.Series(allele_calls)
             cols = allele_calls_series.index.tolist()
             cols.sort()
@@ -308,10 +308,10 @@ def call_peaks(row, out, out_count_name, plot_hists, max_peaks, filter_outliers=
         if len(assignments[assignments.outlier == False][assignments.flanking_outlier == False].cluster_assignments.unique()) < max_peaks:
             for i in range(max_peaks - len(assignments[assignments.outlier == False][assignments.flanking_outlier == False].cluster_assignments.unique())):
                 j = len(assignments[assignments.outlier == False][assignments.flanking_outlier == False].cluster_assignments.unique())+1
-                allele_calls["H"+str(i+j)+":median"] = 0
-                allele_calls["H"+str(i+j)+":mode"] = 0
-                allele_calls["H"+str(i+j)+":supporting_reads"] = 0
-                allele_calls["H"+str(i+j)+":SD"] = 0
+                allele_calls["A"+str(i+j)+":median"] = 0
+                allele_calls["A"+str(i+j)+":mode"] = 0
+                allele_calls["A"+str(i+j)+":supporting_reads"] = 0
+                allele_calls["A"+str(i+j)+":SD"] = 0
         allele_calls["name"] = curr_kde.name
         allele_calls_series = pd.Series(allele_calls)
 
@@ -331,12 +331,12 @@ def call_peaks(row, out, out_count_name, plot_hists, max_peaks, filter_outliers=
                     continue
                 #print(assignment)
                 #print(assignments[assignments.assignment == assignment])
-                allele_calls_series["H"+ str(assignment)+":median_CI_allele_specific"] = curr_kde.bootstrap_KDE_allele_specific(assignments[assignments.cluster_assignments == assignment], resample_size, CI_width, out)
+                allele_calls_series["A"+ str(assignment)+":median_CI_allele_specific"] = curr_kde.bootstrap_KDE_allele_specific(assignments[assignments.cluster_assignments == assignment], resample_size, CI_width, out)
         
         #get total number of supporting reads
         allele_calls_series["num_supporting_reads"] = 0
         for k in range(max_peaks):
-            allele_calls_series["num_supporting_reads"] = allele_calls_series["num_supporting_reads"] + allele_calls["H"+str(k+1) + ":supporting_reads"]
+            allele_calls_series["num_supporting_reads"] = allele_calls_series["num_supporting_reads"] + allele_calls["A"+str(k+1) + ":supporting_reads"]
         allele_calls_series["peak_calling_method"] = decision
         cols = allele_calls_series.index.tolist()
         cols.sort()
@@ -355,11 +355,11 @@ def call_peaks(row, out, out_count_name, plot_hists, max_peaks, filter_outliers=
             curr_dict['bandwidth'] = -1
             curr_dict["peak_calling_method"] = -1
             for i in range(1,max_peaks+1):
-                #curr_mean = "H"+str(i)+":mean"
-                curr_median = "H"+str(i)+":median"
-                curr_mode = "H"+str(i)+":mode"
-                curr_sd = "H" + str(i) + ":SD"
-                curr_support = "H" + str(i) + ":supporting_reads"
+                #curr_mean = "A"+str(i)+":mean"
+                curr_median = "A"+str(i)+":median"
+                curr_mode = "A"+str(i)+":mode"
+                curr_sd = "A" + str(i) + ":SD"
+                curr_support = "A" + str(i) + ":supporting_reads"
                 #if curr_mean not in curr_dict.keys():
                  #   curr_dict[curr_mean] = 0
                 if curr_median not in curr_dict.keys():
@@ -371,10 +371,10 @@ def call_peaks(row, out, out_count_name, plot_hists, max_peaks, filter_outliers=
                 if curr_support not in curr_dict.keys():
                     curr_dict[curr_support] = 0
                 if bootstrap:
-                    curr_dict["H"+str(i)+":median_CI"] = (0,0)
+                    curr_dict["A"+str(i)+":median_CI"] = (0,0)
                 if allele_specif_CIs:
-                    curr_dict["H"+ str(i+1)+":median_CI_allele_specific"] = (0,0)
-                #curr_dict["H"+str(i)] = -1
+                    curr_dict["A"+ str(i+1)+":median_CI_allele_specific"] = (0,0)
+                #curr_dict["A"+str(i)] = -1
                 curr_dict["num_supporting_reads"] = 0
             
             return pd.Series(curr_dict)
@@ -401,7 +401,7 @@ def call_peaks(row, out, out_count_name, plot_hists, max_peaks, filter_outliers=
         if allele_specif_CIs:
             for assignment in final_data2['cluster_assignments'].unique():
                 median_CIs = gmm_stats.bootstrap_gmm_allele_specific(final_data2[final_data2.cluster_assignments == assignment],resample_size,CI_width,out)
-                curr_row["H"+ str(assignment+1)+":median_CI_allele_specific"] = median_CIs
+                curr_row["A"+ str(assignment+1)+":median_CI_allele_specific"] = median_CIs
     
         #write out cluster assignments to file
         #assignments = pd.merge(left = final_data2[['read_id','counts','cluster_assignments']],right=final_data[["read_id","counts","outlier","flanking_outlier"]], on = ["read_id","counts"], how="right")
@@ -442,14 +442,14 @@ def call_peaks_stranded(row, out, out_count_name, plot_hists, max_peaks, filter_
             allele_calls['bandwidth'] = -1
             allele_calls["peak_calling_method"] = -1
             for i in range(max_peaks):
-                allele_calls["H"+str(i + 1)+":median"] = 0
-                allele_calls["H"+str(i + 1)+":mode"] = 0
-                allele_calls["H"+str(i + 1)+":supporting_reads"] = 0
-                allele_calls["H"+str(i+1)+":SD"] = 0
+                allele_calls["A"+str(i + 1)+":median"] = 0
+                allele_calls["A"+str(i + 1)+":mode"] = 0
+                allele_calls["A"+str(i + 1)+":supporting_reads"] = 0
+                allele_calls["A"+str(i+1)+":SD"] = 0
                 if bootstrap:
-                    allele_calls["H"+str(i)+":median_CI"] = (0,0)
+                    allele_calls["A"+str(i)+":median_CI"] = (0,0)
                 if allele_specif_CIs:
-                    allele_calls["H"+ str(i+1)+":median_CI_allele_specific"] = (0,0)
+                    allele_calls["A"+ str(i+1)+":median_CI_allele_specific"] = (0,0)
             allele_calls["strand"] = strand
             allele_calls_series = pd.Series(allele_calls)
             cols = allele_calls_series.index.tolist()
@@ -490,10 +490,10 @@ def call_peaks_stranded(row, out, out_count_name, plot_hists, max_peaks, filter_
         #print("max_k: ", max_k)
         if len(assignments[assignments.outlier == False].cluster_assignments.unique()) < max_peaks:
             for i in range(max_peaks - len(assignments[assignments.outlier == False].cluster_assignments.unique())):
-                allele_calls["H"+str(i+len(assignments[assignments.outlier == False].cluster_assignments.unique())+1)+":median"] = 0
-                allele_calls["H"+str(i+len(assignments[assignments.outlier == False].cluster_assignments.unique())+1)+":mode"] = 0
-                allele_calls["H"+str(i+len(assignments[assignments.outlier == False].cluster_assignments.unique())+1)+":supporting_reads"] = 0
-                allele_calls["H"+str(i+len(assignments[assignments.outlier == False].cluster_assignments.unique())+1)+":SD"] = 0
+                allele_calls["A"+str(i+len(assignments[assignments.outlier == False].cluster_assignments.unique())+1)+":median"] = 0
+                allele_calls["A"+str(i+len(assignments[assignments.outlier == False].cluster_assignments.unique())+1)+":mode"] = 0
+                allele_calls["A"+str(i+len(assignments[assignments.outlier == False].cluster_assignments.unique())+1)+":supporting_reads"] = 0
+                allele_calls["A"+str(i+len(assignments[assignments.outlier == False].cluster_assignments.unique())+1)+":SD"] = 0
         allele_calls["name"] = curr_kde.name
         allele_calls["strand"] = strand
         allele_calls_series = pd.Series(allele_calls)
@@ -514,12 +514,12 @@ def call_peaks_stranded(row, out, out_count_name, plot_hists, max_peaks, filter_
                     continue
                 #print(assignment)
                 #print(assignments[assignments.assignment == assignment])
-                allele_calls_series["H"+ str(assignment)+":median_CI_allele_specific"] = curr_kde.bootstrap_KDE_allele_specific(assignments[assignments.cluster_assignments == assignment], resample_size, CI_width, out)
+                allele_calls_series["A"+ str(assignment)+":median_CI_allele_specific"] = curr_kde.bootstrap_KDE_allele_specific(assignments[assignments.cluster_assignments == assignment], resample_size, CI_width, out)
         
         #get total number of supporting reads
         allele_calls_series["num_supporting_reads"] = 0
         for k in range(max_peaks):
-            allele_calls_series["num_supporting_reads"] = allele_calls_series["num_supporting_reads"] + allele_calls["H"+str(k+1) + ":supporting_reads"]
+            allele_calls_series["num_supporting_reads"] = allele_calls_series["num_supporting_reads"] + allele_calls["A"+str(k+1) + ":supporting_reads"]
         allele_calls_series["peak_calling_method"] = decision
         cols = allele_calls_series.index.tolist()
         cols.sort()
@@ -538,11 +538,11 @@ def call_peaks_stranded(row, out, out_count_name, plot_hists, max_peaks, filter_
             curr_dict['bandwidth'] = -1
             curr_dict["peak_calling_method"] = -1
             for i in range(1,max_peaks+1):
-                #curr_mean = "H"+str(i)+":mean"
-                curr_median = "H"+str(i)+":median"
-                curr_mode = "H"+str(i)+":mode"
-                curr_sd = "H" + str(i) + ":SD"
-                curr_support = "H" + str(i) + ":supporting_reads"
+                #curr_mean = "A"+str(i)+":mean"
+                curr_median = "A"+str(i)+":median"
+                curr_mode = "A"+str(i)+":mode"
+                curr_sd = "A" + str(i) + ":SD"
+                curr_support = "A" + str(i) + ":supporting_reads"
                 #if curr_mean not in curr_dict.keys():
                 #   curr_dict[curr_mean] = 0
                 if curr_median not in curr_dict.keys():
@@ -554,10 +554,10 @@ def call_peaks_stranded(row, out, out_count_name, plot_hists, max_peaks, filter_
                 if curr_support not in curr_dict.keys():
                     curr_dict[curr_support] = 0
                 if bootstrap:
-                    curr_dict["H"+str(i)+":median_CI"] = (0,0)
+                    curr_dict["A"+str(i)+":median_CI"] = (0,0)
                 if allele_specif_CIs:
-                    curr_dict["H"+ str(i+1)+":median_CI_allele_specific"] = (0,0)
-                #curr_dict["H"+str(i)] = -1
+                    curr_dict["A"+ str(i+1)+":median_CI_allele_specific"] = (0,0)
+                #curr_dict["A"+str(i)] = -1
                 curr_dict["num_supporting_reads"] = 0
             curr_dict["strand"] = strand
             return pd.Series(curr_dict)
@@ -579,7 +579,7 @@ def call_peaks_stranded(row, out, out_count_name, plot_hists, max_peaks, filter_
         if allele_specif_CIs:
             for assignment in final_data2['cluster_assignments'].unique():
                 median_CIs = gmm_stats.bootstrap_gmm_allele_specific(final_data2[final_data2.cluster_assignments == assignment],resample_size,CI_width,out)
-                curr_row["H"+ str(assignment+1)+":median_CI_allele_specific"] = median_CIs
+                curr_row["A"+ str(assignment+1)+":median_CI_allele_specific"] = median_CIs
     
         #write out cluster assignments to file
         assignments = pd.merge(left = final_data2[['read_id','counts','cluster_assignments']],right=final_data[["read_id","counts","outlier","flanking_outlier"]], on = ["read_id","counts"], how="right")
@@ -810,7 +810,7 @@ def main():
         if isinstance(geno_df, pd.DataFrame):
             geno_df_final = geno_df.apply(sort_outputs, args=(args.max_peaks,args.bootstrap,args.allele_specific_CIs,True), axis=1)
             for i in range(1,args.max_peaks+1):
-                geno_df_final["H"+str(i)+":strand_std"] = geno_df_final.groupby("name")["H"+str(i)+":median"].transform(np.std)
+                geno_df_final["A"+str(i)+":strand_std"] = geno_df_final.groupby("name")["A"+str(i)+":median"].transform(np.std)
             geno_df_final.to_csv(args.out + "_genotype_calls.tsv",sep="\t",index=False)
             #geno_df.to_csv(args.out + "_stranded_genotype_calls.tsv",sep="\t",index=False)
             pool_end = perf_counter()

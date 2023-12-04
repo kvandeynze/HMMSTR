@@ -199,10 +199,10 @@ def sort_alleles(curr_row, new_row): #this is only for diploid, need to translat
         #get current corresponding original row
         curr_allele = allele_med_cols_order.index[i].split(":")[0]
         curr_allele_cols = curr_row[curr_row.index.str.contains(curr_allele)]
-        new_row["H"+str(i+1)+":median"] = curr_allele_cols[curr_allele + ":median"]
-        new_row["H"+str(i+1)+":mode"] = curr_allele_cols[curr_allele + ":mode"]
-        new_row["H"+str(i+1)+":SD"] = curr_allele_cols[curr_allele + ":SD"]
-        new_row["H"+str(i+1)+":supporting_reads"] = curr_allele_cols[curr_allele + ":supporting_reads"]
+        new_row["A"+str(i+1)+":median"] = curr_allele_cols[curr_allele + ":median"]
+        new_row["A"+str(i+1)+":mode"] = curr_allele_cols[curr_allele + ":mode"]
+        new_row["A"+str(i+1)+":SD"] = curr_allele_cols[curr_allele + ":SD"]
+        new_row["A"+str(i+1)+":supporting_reads"] = curr_allele_cols[curr_allele + ":supporting_reads"]
     return new_row
 
 def sort_outputs(curr_row, max_peaks,bootstrap,allele_specif_CIs, stranded=False):
@@ -214,14 +214,14 @@ def sort_outputs(curr_row, max_peaks,bootstrap,allele_specif_CIs, stranded=False
   if stranded:
       column_names_in_order.append("strand")
   for i in range(1,max_peaks+1):
-      column_names_in_order.append("H"+str(i)+":median")
-      column_names_in_order.append("H"+str(i)+":mode")
-      column_names_in_order.append("H"+str(i)+":SD")
-      column_names_in_order.append("H"+str(i)+":supporting_reads")
+      column_names_in_order.append("A"+str(i)+":median")
+      column_names_in_order.append("A"+str(i)+":mode")
+      column_names_in_order.append("A"+str(i)+":SD")
+      column_names_in_order.append("A"+str(i)+":supporting_reads")
       if bootstrap:
-        column_names_in_order.append("H"+str(i)+":median_CI")
+        column_names_in_order.append("A"+str(i)+":median_CI")
       if allele_specif_CIs:
-        column_names_in_order.append("H"+ str(i+1)+":median_CI_allele_specific")
+        column_names_in_order.append("A"+ str(i+1)+":median_CI_allele_specific")
   column_names_in_order.append("num_supporting_reads")
   column_names_in_order.append("bandwidth")
   column_names_in_order.append("peak_calling_method")

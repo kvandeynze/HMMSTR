@@ -144,10 +144,10 @@ class KDE_cluster:
             if len(a) == 0:
                 clusters = -1
                 #print("data is empty, returning empty allele call for target: ", self.name)
-                allele_calls = {"H"+str(k)+":median":-1 for k in range(1,max_k+1)}
-                allele_calls.update({"H"+str(k)+":mode":-1 for k in range(1,max_k+1)})
-                allele_calls.update({"H"+str(k)+":SD":-1 for k in range(1,max_k+1)})
-                allele_calls.update({"H"+str(k)+":supporting_reads":-1 for k in range(1,max_k+1)})
+                allele_calls = {"A"+str(k)+":median":-1 for k in range(1,max_k+1)}
+                allele_calls.update({"A"+str(k)+":mode":-1 for k in range(1,max_k+1)})
+                allele_calls.update({"A"+str(k)+":SD":-1 for k in range(1,max_k+1)})
+                allele_calls.update({"A"+str(k)+":supporting_reads":-1 for k in range(1,max_k+1)})
                 allele_calls["bandwidth"] = -1
                 return clusters,allele_calls , outliers
 
@@ -224,11 +224,11 @@ class KDE_cluster:
             #FIXME need to change cluster names to be sequential, this would also be fixed by limiting clusters called by bandwidth
             #allele_calls = {k+"_KDE_maxima": round(float(maxima[k])) for k in k_clusters}
             allele_calls = {}
-            allele_calls.update({"H" +str(k)+":supporting_reads":sizes[k] for k in k_clusters})
-            allele_calls.update({"H" +str(k)+":SD":np.std(all_clusters[k]) for k in k_clusters})
+            allele_calls.update({"A" +str(k)+":supporting_reads":sizes[k] for k in k_clusters})
+            allele_calls.update({"A" +str(k)+":SD":np.std(all_clusters[k]) for k in k_clusters})
             #updated 080123, added stats in case the maxima is weird from clustering outliers or a far-off allele
-            allele_calls.update({"H" +str(k)+":median":np.median(all_clusters[k]) for k in k_clusters})
-            allele_calls.update({"H" +str(k)+":mode":int(st.mode(np.array(all_clusters[k]),keepdims=True)[0][0]) for k in k_clusters}) #I dont know if this will be the same, for some reason my results from margits data dont line up with finding the mode
+            allele_calls.update({"A" +str(k)+":median":np.median(all_clusters[k]) for k in k_clusters})
+            allele_calls.update({"A" +str(k)+":mode":int(st.mode(np.array(all_clusters[k]),keepdims=True)[0][0]) for k in k_clusters}) #I dont know if this will be the same, for some reason my results from margits data dont line up with finding the mode
             
             allele_calls["bandwidth"] = kde.bandwidth_
         elif len(k_clusters) == 1:
@@ -244,9 +244,9 @@ class KDE_cluster:
             #allele_calls = {k+"_KDE_maxima":-1 for k in k_clusters}
             allele_calls = {}
             allele_calls["bandwidth"] = -1
-            allele_calls.update({"H"+str(k)+":SD":0 for k in k_clusters})
-            allele_calls.update({"H"+str(k)+":median":0 for k in k_clusters})
-            allele_calls.update({"H"+str(k)+":mode":0 for k in k_clusters})
+            allele_calls.update({"A"+str(k)+":SD":0 for k in k_clusters})
+            allele_calls.update({"A"+str(k)+":median":0 for k in k_clusters})
+            allele_calls.update({"A"+str(k)+":mode":0 for k in k_clusters})
             return clusters,allele_calls , outliers
 
         if output_plots:
@@ -387,9 +387,9 @@ class KDE_cluster:
         filtered = throw_low_cov(data)
         call_lists = {}
         for i in range(1,max_peaks+1):
-            #call_lists["H"+str(i)+"_mean"]=[]
-            call_lists["H"+str(i)+":median"]=[]
-            #call_lists["H"+str(i)+"_mode"]=[]
+            #call_lists["A"+str(i)+"_mean"]=[]
+            call_lists["A"+str(i)+":median"]=[]
+            #call_lists["A"+str(i)+"_mode"]=[]
 
         for i in range(resample_size):
             #sample up to the depth of the experiment with replacement
@@ -398,23 +398,23 @@ class KDE_cluster:
             clusters, allele_calls, outliers, flanking_outliers = self.call_clusters(kernel="gaussian", bandwidth = 'scott', max_k = max_peaks, output_plots = False, subset=curr_sample, filter_quantile=0.25) 
             #add current call to lists
             for j in range(1,max_peaks+1):
-                if ("H"+str(j)+":median") not in allele_calls.keys():
-                    call_lists["H"+str(j)+":median"].append(0)
-                    allele_calls["H"+str(j)+":median"] = 0
+                if ("A"+str(j)+":median") not in allele_calls.keys():
+                    call_lists["A"+str(j)+":median"].append(0)
+                    allele_calls["A"+str(j)+":median"] = 0
                     continue
-                #call_lists["H"+str(j)+"_mean"].append(curr_row[0]['H'+str(j)+":mean"])
-                call_lists["H"+str(j)+":median"].append(allele_calls["H"+str(j)+":median"])
+                #call_lists["A"+str(j)+"_mean"].append(curr_row[0]['H'+str(j)+":mean"])
+                call_lists["A"+str(j)+":median"].append(allele_calls["A"+str(j)+":median"])
         #mean_CIs = {}
         median_CIs = {}
         #mode_CIs = {}
         adjustment = float((1.0 - CI_width)/2)
         for j in range(1,max_peaks+1): #get confidence interval for each allele called
-            #curr_means = call_lists["H"+str(j)+"_mean"]
-            curr_medians = call_lists["H"+str(j)+":median"]
-            #curr_modes = call_lists["H"+str(j)+"_mode"]
-            #curr_row[0]["H"+str(j)+":mean_CI"] = (np.quantile(curr_means,adjustment),np.quantile(curr_means,1-adjustment))
-            median_CIs["H"+str(j)+":median_CI"] = (np.quantile(curr_medians,adjustment),np.quantile(curr_medians,1-adjustment))
-            #curr_row[0]["H"+str(j)+":mode_CI"] = (np.quantile(curr_modes,adjustment),np.quantile(curr_modes,1-adjustment))
+            #curr_means = call_lists["A"+str(j)+"_mean"]
+            curr_medians = call_lists["A"+str(j)+":median"]
+            #curr_modes = call_lists["A"+str(j)+"_mode"]
+            #curr_row[0]["A"+str(j)+":mean_CI"] = (np.quantile(curr_means,adjustment),np.quantile(curr_means,1-adjustment))
+            median_CIs["A"+str(j)+":median_CI"] = (np.quantile(curr_medians,adjustment),np.quantile(curr_medians,1-adjustment))
+            #curr_row[0]["A"+str(j)+":mode_CI"] = (np.quantile(curr_modes,adjustment),np.quantile(curr_modes,1-adjustment))
         return median_CIs
 
     def bootstrap_KDE_allele_specific(self,data, resample_size, CI_width, out):

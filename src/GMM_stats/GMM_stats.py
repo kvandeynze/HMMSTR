@@ -101,11 +101,11 @@ class GMMStats:
             else:
                 cluster_assignments = np.array([-1])
             for i in range(1,num_max_peaks+1):
-                #curr_mean = "H"+str(i)+":mean"
-                curr_median = "H"+str(i)+":median"
-                curr_mode = "H"+str(i)+":mode"
-                curr_sd = "H" + str(i) + ":SD"
-                curr_support = "H" + str(i) + ":supporting_reads"
+                #curr_mean = "A"+str(i)+":mean"
+                curr_median = "A"+str(i)+":median"
+                curr_mode = "A"+str(i)+":mode"
+                curr_sd = "A" + str(i) + ":SD"
+                curr_support = "A" + str(i) + ":supporting_reads"
                 #if curr_mean not in curr_dict.keys():
                    # curr_dict[curr_mean] = 0 #don't include the mean since our distributions are left skewed, report median and mode
                 if curr_median not in curr_dict.keys():
@@ -117,7 +117,7 @@ class GMMStats:
                 if curr_support not in curr_dict.keys():
                     curr_dict[curr_support] = 0
         # for i in range(1,num_max_peaks+1):
-        #     curr_dict["H"+str(i)+":SD"] = final_peaks_SD[i-1]
+        #     curr_dict["A"+str(i)+":SD"] = final_peaks_SD[i-1]
             curr_dict["num_supporting_reads"] = len(X_orig.index)
             return pd.Series(curr_dict), cluster_assignments
         # Fit models with 1-10 components
@@ -253,19 +253,19 @@ class GMMStats:
             cluster_stats[i]['supporting_reads'] = len(np.where(cluster_assignments == i)[0])
         #unravel cluster_stats dictionary for curr_row
         for i in cluster_stats.keys():
-            #curr_dict["H" + str(i+1) + ":mean"] = cluster_stats[i]["mean"]
-            curr_dict["H" + str(i+1) + ":median"] = cluster_stats[i]["median"]
-            curr_dict["H" + str(i+1) + ":mode"] = cluster_stats[i]["mode"]
-            curr_dict["H" + str(i+1) + ":SD"] = cluster_stats[i]["SD"]
-            curr_dict["H" + str(i+1) + ":supporting_reads"] = cluster_stats[i]["supporting_reads"]
+            #curr_dict["A" + str(i+1) + ":mean"] = cluster_stats[i]["mean"]
+            curr_dict["A" + str(i+1) + ":median"] = cluster_stats[i]["median"]
+            curr_dict["A" + str(i+1) + ":mode"] = cluster_stats[i]["mode"]
+            curr_dict["A" + str(i+1) + ":SD"] = cluster_stats[i]["SD"]
+            curr_dict["A" + str(i+1) + ":supporting_reads"] = cluster_stats[i]["supporting_reads"]
 
         #check for missing columns and fill them if not there
         for i in range(1,num_max_peaks+1):
-            #curr_mean = "H"+str(i)+":mean"
-            curr_median = "H"+str(i)+":median"
-            curr_mode = "H"+str(i)+":mode"
-            curr_sd = "H" + str(i) + ":SD"
-            curr_support = "H" + str(i) + ":supporting_reads"
+            #curr_mean = "A"+str(i)+":mean"
+            curr_median = "A"+str(i)+":median"
+            curr_mode = "A"+str(i)+":mode"
+            curr_sd = "A" + str(i) + ":SD"
+            curr_support = "A" + str(i) + ":supporting_reads"
             #if curr_mean not in curr_dict.keys():
                 #curr_dict[curr_mean] = 0
             if curr_median not in curr_dict.keys():
@@ -289,9 +289,9 @@ class GMMStats:
         filtered = throw_low_cov(data)
         call_lists = {}
         for i in range(1,max_peaks+1):
-            #call_lists["H"+str(i)+"_mean"]=[]
-            call_lists["H"+str(i)+"_median"]=[]
-            #call_lists["H"+str(i)+"_mode"]=[]
+            #call_lists["A"+str(i)+"_mean"]=[]
+            call_lists["A"+str(i)+"_median"]=[]
+            #call_lists["A"+str(i)+"_mode"]=[]
 
         for i in range(resample_size):
             #sample up to the depth of the experiment with replacement
@@ -300,20 +300,20 @@ class GMMStats:
             curr_row = self.call_peaks(curr_sample, out ,max_peaks, plot=False) 
             #add current call to lists
             for j in range(1,max_peaks+1):
-                #call_lists["H"+str(j)+"_mean"].append(curr_row[0]['H'+str(j)+":mean"])
-                call_lists["H"+str(j)+"_median"].append(curr_row[0]['H'+str(j)+":median"])
-                #call_lists["H"+str(j)+"_mode"].append(curr_row[0]['H'+str(j)+":mode"])
+                #call_lists["A"+str(j)+"_mean"].append(curr_row[0]['H'+str(j)+":mean"])
+                call_lists["A"+str(j)+"_median"].append(curr_row[0]['H'+str(j)+":median"])
+                #call_lists["A"+str(j)+"_mode"].append(curr_row[0]['H'+str(j)+":mode"])
         #mean_CIs = {}
         median_CIs = {}
         #mode_CIs = {}
         adjustment = float((1.0 - CI_width)/2)
         for j in range(1,max_peaks+1): #get confidence interval for each allele called
-            #curr_means = call_lists["H"+str(j)+"_mean"]
-            curr_medians = call_lists["H"+str(j)+"_median"]
-            #curr_modes = call_lists["H"+str(j)+"_mode"]
-            #curr_row[0]["H"+str(j)+":mean_CI"] = (np.quantile(curr_means,adjustment),np.quantile(curr_means,1-adjustment))
-            curr_row[0]["H"+str(j)+":median_CI"] = (np.quantile(curr_medians,adjustment),np.quantile(curr_medians,1-adjustment))
-            #curr_row[0]["H"+str(j)+":mode_CI"] = (np.quantile(curr_modes,adjustment),np.quantile(curr_modes,1-adjustment))
+            #curr_means = call_lists["A"+str(j)+"_mean"]
+            curr_medians = call_lists["A"+str(j)+"_median"]
+            #curr_modes = call_lists["A"+str(j)+"_mode"]
+            #curr_row[0]["A"+str(j)+":mean_CI"] = (np.quantile(curr_means,adjustment),np.quantile(curr_means,1-adjustment))
+            curr_row[0]["A"+str(j)+":median_CI"] = (np.quantile(curr_medians,adjustment),np.quantile(curr_medians,1-adjustment))
+            #curr_row[0]["A"+str(j)+":mode_CI"] = (np.quantile(curr_modes,adjustment),np.quantile(curr_modes,1-adjustment))
         return curr_row[0]
 
     def bootstrap_gmm_allele_specific(self,data, resample_size, CI_width, out):
