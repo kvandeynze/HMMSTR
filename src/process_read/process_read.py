@@ -174,14 +174,14 @@ class Process_Read:
             info["subset_start"] = info["align_start"] + info["start_length"] - 400
             info["subset_end"] = info["align_end"]-info["end_length"]+50 -1
         elif info["align_start"] + info["start_length"] - 400 < 0 and info["align_end"]-info["end_length"]+400 > len(self.seq):
-            print("entered the case where 400 is too big")
+            #print("entered the case where 400 is too big")
             if info["align_start"] + info["start_length"] - 50 < 0 and info["align_end"]-info["end_length"]+50 > len(self.seq):
-                print("entered the case where 5 is too big for both")
+                #print("entered the case where 5 is too big for both")
                 info["subset"] = self.seq[info["align_start"] : info["align_end"]]
                 info["subset_start"] = info["align_start"]
                 info["subset_end"] = info["align_end"]-1
             else:
-                print("entered the case where 50 is good to go")
+                #print("entered the case where 50 is good to go")
                 info["subset"] = self.seq[info["align_start"] + info["start_length"] - 50: info["align_end"]-info["end_length"]+50] #switch back to 50 if this doesnt help
                 info["subset_start"] = info["align_start"] + info["start_length"] - 50
                 info["subset_end"] = info["align_end"]-info["end_length"]+50 -1
@@ -224,7 +224,7 @@ class Process_Read:
             if self.keep_region(prefix_info, suffix_info):
                 self.target_info[row.name] = self.get_align_info(row, prefix_info, suffix_info)
 
-    def run_viterbi(self,hmm_file,rev_hmm_file,hidden_states,rev_states,out,build_pre, prefix_idx):
+    def run_viterbi(self,hmm_file,rev_hmm_file,hidden_states,rev_states,out,build_pre, prefix_idx,output_labelled_seqs):
         '''
         This function runs viterbi on the current read across all identified targets.
         '''
@@ -279,8 +279,9 @@ class Process_Read:
             out_file = open(out+"_"+name+"_counts.txt","a")
             out_file.write(self.read_id + " " + self.target_info[name]["strand"] + " "+ str(score) + " " + str(MLE) + " " + str(likelihood)+ " " + str(final_repeat_like) + " " + str(repeat_start) + " "+ str(repeat_end) + " "+ str(self.target_info[name]["align_start"]) + " "+str(self.target_info[name]["align_end"])+ " " + str(count) + "\n")
             out_file.close()
-            #output labelled sequence to context file for given target
-            print_labelled(self.read_id,self.target_info[name]["strand"],sub_labels,context,pointers,out+"_"+name+"_context_labeled.txt")
+            #output labelled sequence to context file for given target if output_labelled_seqs is set
+            if output_labelled_seqs:
+                print_labelled(self.read_id,self.target_info[name]["strand"],sub_labels,context,pointers,out + "_labelled_seqs/"+name+"_context_labeled.txt")
         return True
 
         

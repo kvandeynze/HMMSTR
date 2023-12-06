@@ -8,7 +8,7 @@ import pandas as pd
 from time import perf_counter
 import multiprocessing as mp
 import pickle as pkl
-
+import sys
 #custom imports
 from profile_HMM.profile_HMM import ProfileHMM
 from HMMSTR_utils.HMMSTR_utils import *
@@ -16,6 +16,51 @@ from process_read.process_read import Process_Read
 from GMM_stats.GMM_stats import GMMStats
 from KDE_stats.KDE_stats import KDE_cluster
 
+class LoadFromFile (argparse.Action):
+    #for reading from input file instead of command line
+    def __call__ (self, parser, namespace, values, option_string = None):
+        with values as f:
+            # parse arguments in the file and store them in the target namespace
+            parser.parse_args(f.read().split(), namespace)
+
+def read_my_file(argv):
+    # if there is a '-A' string in argv, replace it, and the following filename
+    # with the contents of the file (as strings)
+    # you can adapt code from _read_args_from_files
+    new_argv = []
+    with open(argv,"r") as params:
+        for a in params: #read each file
+            print(a.rstrip().split(" "))
+            for b in a.rstrip().split(" "):
+                new_argv.append(b)
+    return new_argv
+def write_input_command(args):
+    with open(args.out + "_run_input.txt","w") as outfile:
+        outfile.write(vars(args)["subcommand"] + "\n")
+        #check subcommand 
+        if vars(args)["subcommand"] == "coordinates":
+            #write out coordinates specific arguments
+            outfile.write(vars(args)["coords_file"] + "\n")
+            outfile.write(vars(args)["chrom_sizes_file"] + "\n")
+            outfile.write(vars(args)["ref"] + "\n")
+            outfile.write("--input_flank_length"+" "+str(vars(args)["input_flank_length"]) + "\n")
+        else:
+            #targets
+            outfile.write(vars(args)["targets"] + "\n")
+        outfile.write(vars(args)["out"] + "\n")
+        outfile.write(vars(args)["inFile"] + "\n")
+
+        #TODO supress bootstrapping options if bootstrapping isn't selected
+        for key,val in vars(args).items():
+            if key in ["subcommand","out","inFile","coords_file","targets","ref","chrom_sizes_file","input_flank_length"]: #these are positional fields, put these where they go first
+                continue
+            if val in [None, False]: #check if we want this parameter in our input
+                continue
+            if val == True: #stores true
+                outfile.write("--"+key +"\n")
+                continue
+            outfile.write("--"+key + " "+ str(val)+"\n")
+    return
 def convert_to_fasta(tsv,out):
     '''
     Function to write "read" entry for a given target for both prefix and suffix
@@ -609,19 +654,22 @@ def main():
     #Required inputs, TODO subcommands for input types, test this
     subparsers = parser.add_subparsers(dest='subcommand')
     subparsers.required = True
-        #  subparser for dump
     parser_infile = subparsers.add_parser('targets_tsv')
     # add a required argument
     parser_infile.add_argument(dest ="targets",type=str, help='TSV with name, prefix, repeat, suffix, header required. Recommended at least 100bp with default alignment parameters')
     #coordinates mode parser
     parser_coords = subparsers.add_parser('coordinates')
-    parser_coords.add_argument(dest = 'coords_file',type=str,help='Path to input bed file with either 4 (chr,start,end,repeat motif) or 5 (chr,start,end,repeat motif, name) columns')
+    parser_coords.add_argument(dest = 'coords_file',type=str,help='Path to input custom bed file with either 4 (chr,start,end,repeat motif) or 5 (chr,start,end,repeat motif, name) columns')
     parser_coords.add_argument(dest='chrom_sizes_file',type=str,help = 'Path to chromosome sizes file')
     parser_coords.add_argument(dest="ref",type=str,help="Path to reference genome to get flanking sequence from")
     parser_coords.add_argument("--input_flank_length",type=int,help="Length of prefix and suffix to get from reference, must be longer than 30bp (Default) or flanking_size parameter (default: %(default)s)",default=200)
+
     #parser.add_argument(dest ="targets",type=str, help='TSV with name, prefix, repeat, suffix, header required. Recommended at least 100bp with default alignment parameters')
+
+    #same as above but for targets_tsv
     parser.add_argument(dest ="out",type=str, help='Output prefix including directory path')
     parser.add_argument(dest = "inFile", type=str, help= 'Sequence to search and annotate in fasta or fastq, gzipped accepted')
+
 
     #coordinate input options ***these inputs are dependent on other inputs and I need to figure out how to deal with that
     #TODO figure out how to make arguments conditional ie how do I make it so you can pass either coordinates or target sheet? do I need a bunch of conditionals to control this or is there a
@@ -675,16 +723,40 @@ def main():
     parser.add_argument("--cluster_only", help="Run clustering on output corresponding to required arguments, mostly for debugging past runs", action='store_true')
     parser.add_argument("--save_intermediates", help="Flag designating to save intermediate files such as model inputs, raw count files, and state sequence files", action='store_true')
 
-    args = parser.parse_args()
+    #check input to see if file or command line was used
+    if len(sys.argv) != 2:
+        args = parser.parse_args()
+    elif len(sys.argv) == 2:
+        if sys.argv[1] == "--help" or sys.argv[1] == "-h":
+            args = parser.parse_args()
+            sys.exit()
+        args = parser.parse_args(read_my_file(sys.argv[1]))
 
-    if args.output_plots: #FIXME check if directory already exists
+    #TODO print out all options chosen and save parameter file for run
+    print("Parameters for this HMMSTR run: ")
+    with open(args.out + "_run_parameters.txt","w") as outfile:
+        for key,val in vars(args).items():
+            print(key,":",val)
+            outfile.write(key + ":"+ str(val)+"\n")
+    #TODO output file with parameters for this run but output in input format so run can be replicated in the future -- not sure if this should just be an option, outputtin 2 of these seems silly
+    write_input_command(args)
+
+
+    
+    if args.output_plots:
         directory = args.out + "_plots"
-        os.mkdir(directory) 
-        print("Directory '% s' created" % directory)
+        if os.path.exists(directory) == False:
+            os.mkdir(directory) 
+            print("Directory '% s' created" % directory)
+        else:
+            print("Directory '% s' alread exists! Plots will be output to existing directory..." % directory)
     if args.output_labelled_seqs: #FIXME check if directory already exists
         directory = args.out + "_labelled_seqs"
-        os.mkdir(directory) 
-        print("Directory '% s' created" % directory)
+        if os.path.exists(directory) == False:
+            os.mkdir(directory) 
+            print("Directory '% s' created" % directory)
+        else:
+            print("Directory '% s' alread exists! Labelled sequences will be output to existing directory..." % directory)
     #check input mode and check if inputs compatible for coordinates
     if args.subcommand == 'coordinates':
         #check inputs
@@ -699,6 +771,7 @@ def main():
         targets.to_csv(args.out + "_inputs.tsv", sep="\t",index=False)
     else:
         #read in targets
+        print("Target tsv input selected! Reading input from  %s..."%(args.targets))
         targets = pd.read_csv(args.targets, sep="\t")
     #convert custom inputs
     if args.E_probs is not None:
@@ -715,7 +788,7 @@ def main():
         background = None
     if args.custom_RM is not None:
         custom_RM = read_model_params(args.custom_RM,"repeat")
-        print(custom_RM)
+        #print(custom_RM)
     else:
         custom_RM = None
     
@@ -729,7 +802,7 @@ def main():
             pool_start = perf_counter()
             targets.apply(build_all,axis=1,args=(args.out, background, alphabet,A_probs, E_probs, custom_RM, args.flanking_size)) #added flanking size
             pool_end = perf_counter()
-            print("build_profile finished .... time was: ", str(pool_end-pool_start))
+            print("All models built! finished .... time was: ", str(pool_end-pool_start))
             build_pre = args.out #need to make sure this is compatible with new build all implentation
         else:
             print("Using previously written input files with prefix: " + args.hmm_pre)
@@ -744,7 +817,7 @@ def main():
 
         #start multiprocess of read processing
         pool_start = perf_counter()
-        print("cpu's in use: " + str(args.cpus))
+        print("Starting multiprocess, cpu's in use: " + str(args.cpus))
         pool = mp.Pool(processes=args.cpus)
 
         #check input file type and pass to appropriate parser
@@ -794,7 +867,7 @@ def main():
             geno_df_final = geno_df.apply(sort_outputs, args=(args.max_peaks,args.bootstrap,args.allele_specific_CIs), axis=1)
             geno_df_final.to_csv(args.out + "_genotype_calls.tsv",sep="\t",index=False)
             pool_end = perf_counter()
-            print("GMM run done! Took: ", pool_end-pool_start)
+            print("Genotyping run done! Took: ", pool_end-pool_start)
         else:
             print(geno_df)
             print("Results are not a DataFrame! Something went wrong...")
@@ -814,7 +887,7 @@ def main():
             geno_df_final.to_csv(args.out + "_genotype_calls.tsv",sep="\t",index=False)
             #geno_df.to_csv(args.out + "_stranded_genotype_calls.tsv",sep="\t",index=False)
             pool_end = perf_counter()
-            print("GMM run done! Took: ", pool_end-pool_start)
+            print("Genotyping done! Took: ", pool_end-pool_start)
         else:
             print(geno_df)
             print("Results are not a DataFrame! Something went wrong...")

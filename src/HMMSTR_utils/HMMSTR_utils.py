@@ -59,7 +59,7 @@ def read_fastq(fileObject):
   seq = ''
   # skip any useless leading information
   for line in fileObject:
-    print(line)
+    #print(line)
     if line.startswith('@'):
       header = line.strip()
       break
@@ -126,11 +126,11 @@ def read_model_params(input_file, param_type):
     input_df = pd.read_csv(input_file, sep="\t",index_col=0)
     if param_type == 'repeat':
        #add blank row
-      print(input_df)
+      #print(input_df)
       input_df.loc[len( pd.DataFrame(input_df).index)] = 0
       input_df.index = ['A','G','C','T','']
     param_dict = input_df.to_dict()
-    print(param_dict)
+    #print(param_dict)
    return param_dict
 
 def generate_input_sheet(coords_file, chrom_sizes_file, ref,flanking_length=200):

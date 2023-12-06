@@ -151,7 +151,7 @@ class KDE_cluster:
                 allele_calls["bandwidth"] = -1
                 return clusters,allele_calls , outliers
 
-            print("an exception occurred!")
+            #print("an exception occurred!")
             print("Switching to a constant bandwidth=0.5")
             kde = KernelDensity( bandwidth=0.5,kernel=kernel).fit(a)
         #s = linspace(min(a)-5,max(a)+5)
@@ -261,7 +261,7 @@ class KDE_cluster:
                         plt.plot(s[ma], np.exp(e[ma]), 'bo',label="KDE Maxima")
                     
                 except:
-                    print("Encounted an exception in homozygous plotting case")
+                    print("Encounted an exception in homozygous plotting case (KDE)")
                 #plt.plot(s[ma], e[ma], 'go') #plot just the points
                 if allele_specific:
                     plt.title(self.name + " KDE: Allele " + allele)
@@ -292,7 +292,7 @@ class KDE_cluster:
                     plt.plot(s[:],np.exp(e[:]),color="black",lw=2,linestyle="-",label="Kernel Density Estimate")
                     plt.plot(s[ma], np.exp(e[ma]), 'bo',label="KDE Maxima")
                 except:
-                    print("whoops")
+                    print("An exception has occured")
                 plt.plot(s[mi], np.exp(e[mi]), 'ro',label="KDE Minima")
                 if allele_specific:
                     plt.title(self.name + " KDE: Allele "+ allele)

@@ -47,69 +47,7 @@ def label_states(vit_out, hidden_states):
     #print(labeled_seq)
     return labeled_seq, pointers,MLE
 
-# def calc_likelihood(vit_out, pointers, labeled_seq,hidden_states, read):
-#     '''
-#     Function to calculate likelihoods corresponding to subseqeunces to be used later
 
-#     Args:
-#         vit_out (text file): text file output of testvit.c
-#         pointers (dict): dictionary of indeces in labeled_seq corresponding to beginning of different sections of the model
-#         labeled_seq (str): labeled state seqeunce corresponding to viterbi output
-#         hidden_states (text file): text file of "." delimited states in correct order to label with
-#         read (str): raw read sequence
-
-#     Returns:
-#         final (float): final likelihood corresponding to prefix --> suffix viterbi path
-#         final_labels(str): seqeunce labels for prefix --> suffix, "-" delimited
-#         repeats (str): sequence including deletion labels corresponding to only the target repeat in the seqeunce
-#         context (str): sequence including deletion labels corresponding to the path through prefix-->suffix
-
-#     '''
-#     #we can calculate the likelihood using the labeled sequence
-#     likelihoods_int = vit_out.split("\n")[4]
-#     likelihoods_dec = vit_out.split("\n")[5]
-#     #process likelihood outputs, combine leading integers with decimals
-#     likelihood_int_list = likelihoods_int.rstrip().split(" ")
-#     likelihood_dec_list = likelihoods_dec.rstrip().split(" ")
-#     likelihood_int_list = [int(i) for i in likelihood_int_list]
-#     likelihood_dec_list = [abs(int(i)) for i in likelihood_dec_list]
-#     likelihood_list = [float('.'.join(str(i) for i in x)) for x in list(zip(likelihood_int_list,likelihood_dec_list))]
-#     #get the last G1 and S likelihoods
-#     Sn = pointers["G2"] - 1
-#     Gn = pointers["P"] - 1
-#     final = likelihood_list[Sn] - likelihood_list[Gn]
-#     final_repeat_like = likelihood_list[pointers["S"]-1] - likelihood_list[pointers["R"]-1] #likelihood of just the repeat
-#     final_labels = "-".join(labeled_seq[pointers["P"]:pointers["G2"]])
-#     #get context and repeat sequence, can't just use pointers cause there may be deletions so labelled seq and read may be different lengths
-#     #FIXME need to adjust for number deletions so we subset less of the read, otherwise indeces are off. not sure if only accounting for prefix or all deletions is necessary
-#     print("full labelled seq is: ", labeled_seq)
-#     print("curr read is: ",read) 
-#     print("count of PD is: ",final_labels.count('PD'))
-#     print("sequence between pointers: ", read[pointers["P"]:pointers["G2"]])
-#     print("sequence between pointers accounting for deletions: ", read[pointers["P"]:pointers["G2"]+len(pointers['D'])])
-#     num_pd = final_labels.count('PD')
-#     sub_read = read[pointers["P"]+num_pd:] #need to adjust for deletions but I think it maybe postion dependent
-#     #get indeces in labelled with deletions
-
-#     deletions = [i - pointers["P"] for i in pointers["D"]] #convert to be relative to prefix start position
-#     print("original deletions: ", pointers['D'])
-#     print("new deletion indeces: ", deletions)
-#     #for each deletion, add a "-" in the raw sequence (this may not be the most efficient way to do this)
-#     context = ""
-#     offset = 0
-#     print(final_labels)
-#     for i in range(len(final_labels.split("-"))):
-#         if i in deletions:
-#             context= context + "-"
-#             offset+=1
-#         else:
-#             context = context + sub_read[i-offset]
-
-#     #now our read is the same length as the labelled seq so we can index with the pointers
-#     R_start = pointers["R"] - pointers["P"]
-#     R_end = pointers["S"] - pointers["P"]
-#     repeats = context[R_start:R_end] #need to see if this includes last index of repeat
-#     return final, final_labels, repeats, context, final_repeat_like
 def calc_likelihood(vit_out, pointers, labeled_seq,hidden_states, read,subset_start, subset_end):
     '''
     Function to calculate likelihoods corresponding to subseqeunces to be used later
@@ -148,22 +86,12 @@ def calc_likelihood(vit_out, pointers, labeled_seq,hidden_states, read,subset_st
     repeat_start = pointers["R"] + subset_start
 
     final_labels = "-".join(labeled_seq[pointers["P"]:pointers["G2"]])
-    #get context and repeat sequence, can't just use pointers cause there may be deletions so labelled seq and read may be different lengths
-    #FIXME need to adjust for number deletions so we subset less of the read, otherwise indeces are off. not sure if only accounting for prefix or all deletions is necessary
-    # print("count of PD is: ",final_labels.count('PD'))
-    # print("sequence between pointers: ", read[pointers["P"]:pointers["G2"]])
-    # print("sequence between pointers accounting for deletions: ", read[pointers["P"]:pointers["G2"]+len(pointers['D'])])
     num_pd = final_labels.count('PD')
     sub_read = read[pointers["P"]+num_pd:] #need to adjust for deletions but I think it maybe postion dependent
     #get indeces in labelled with deletions
 
     deletions = [i - pointers["P"] for i in pointers["D"]] #convert to be relative to prefix start position
-    #print("length full labelled seq is: ", len(labeled_seq), " curr read length is: ",len(read),"\n", " number deletions: ", len(pointers['D']), " number of insertions: ", "".join(labeled_seq).count("I"), "\n"," number of RD: ", "".join(labeled_seq).count("RD"), " number of RI: ", "".join(labeled_seq).count("RI"),"\n"," number of SD: ", "".join(labeled_seq).count("SD"), " number of SI: ", "".join(labeled_seq).count("SI"))
 
-    # print("difference in number of insertions and deletions: ", str("".join(labeled_seq).count("RD") - "".join(labeled_seq).count("RI") ))
-    # print("length states - length read: ", str(len(labeled_seq) - len(read) ))
-
-    #print("new deletion indeces: ", deletions)
     #for each deletion, add a "-" in the raw sequence (this may not be the most efficient way to do this)
     context = ""
     offset = 0
