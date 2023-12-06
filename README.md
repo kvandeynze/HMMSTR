@@ -26,9 +26,10 @@ pip install -i https://test.pypi.org/simple/ --extra-index-url https://pypi.org/
 
 ## Usage
 ```
-usage: hmmstr [-h] [--background BACKGROUND] [--E_probs E_PROBS] [--A_probs A_PROBS] [--custom_RM CUSTOM_RM] [--hmm_pre HMM_PRE] [--output_hist] [--max_peaks MAX_PEAKS] [--cpus CPUS] [--flanking_size FLANKING_SIZE]
-              [--mode MODE] [--cutoff CUTOFF] [--k K] [--w W] [--use_full_read] [--peakcalling_method PEAKCALLING_METHOD] [--bandwidth BANDWIDTH] [--kernel KERNEL] [--bootstrap] [--call_width CALL_WIDTH]
-              [--resample_size RESAMPLE_SIZE] [--allele_specific_CIs] [--allele_specific_plots] [--discard_outliers] [--filter_quantile FILTER_QUANTILE] [--cluster_only] [--save_intermediates]
+usage: hmmstr [-h] [--background BACKGROUND] [--E_probs E_PROBS] [--A_probs A_PROBS] [--custom_RM CUSTOM_RM] [--hmm_pre HMM_PRE] [--output_plots] [--output_labelled_seqs] [--max_peaks MAX_PEAKS] [--cpus CPUS]
+              [--flanking_size FLANKING_SIZE] [--mode MODE] [--mapq_cutoff MAPQ_CUTOFF] [--k K] [--w W] [--use_full_read] [--peakcalling_method PEAKCALLING_METHOD] [--bandwidth BANDWIDTH] [--kernel KERNEL]
+              [--bootstrap] [--call_width CALL_WIDTH] [--resample_size RESAMPLE_SIZE] [--allele_specific_CIs] [--allele_specific_plots] [--discard_outliers] [--filter_quantile FILTER_QUANTILE]
+              [--flanking_like_filter] [--stranded_report] [--cluster_only] [--save_intermediates]
               {targets_tsv,coordinates} ... out inFile
 ```
 
