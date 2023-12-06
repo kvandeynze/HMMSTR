@@ -158,23 +158,37 @@ class Process_Read:
         #ADDED flag to use full read in viterbi because already relativly short reads and need to conserve information
         if self.use_full_seq:
             info["subset"] = self.seq
+            #ADDED record subset coords so we can calculate repeat coordinates
+            info["subset_start"] = 0
+            info["subset_end"] = len(self.seq) -1
             return info
 
         # TODO update this to be compatible with whatever length flanking sequence encoded in the model --niche use case but may cause problems if we subset a sequence to be shorter than the intended model prefix or suffix
         if info["align_start"] + info["start_length"] - 400 < 0 and info["align_end"]-info["end_length"]+400 < len(self.seq):
             info["subset"] = self.seq[info["align_start"] + info["start_length"] - 50: info["align_end"]-info["end_length"]+400]
+            info["subset_start"] = info["align_start"] + info["start_length"] - 50
+            info["subset_end"] = info["align_end"]-info["end_length"]+400 -1
+
         elif info["align_start"] + info["start_length"] - 400 > 0 and info["align_end"]-info["end_length"]+400 > len(self.seq):
             info["subset"] = self.seq[info["align_start"] + info["start_length"] - 400: info["align_end"]-info["end_length"]+50]
+            info["subset_start"] = info["align_start"] + info["start_length"] - 400
+            info["subset_end"] = info["align_end"]-info["end_length"]+50 -1
         elif info["align_start"] + info["start_length"] - 400 < 0 and info["align_end"]-info["end_length"]+400 > len(self.seq):
-            print("entered the case where 400 is too big")
+            #print("entered the case where 400 is too big")
             if info["align_start"] + info["start_length"] - 50 < 0 and info["align_end"]-info["end_length"]+50 > len(self.seq):
-                print("entered the case where 5 is too big for both")
+                #print("entered the case where 5 is too big for both")
                 info["subset"] = self.seq[info["align_start"] : info["align_end"]]
+                info["subset_start"] = info["align_start"]
+                info["subset_end"] = info["align_end"]-1
             else:
-                print("entered the case where 50 is good to go")
+                #print("entered the case where 50 is good to go")
                 info["subset"] = self.seq[info["align_start"] + info["start_length"] - 50: info["align_end"]-info["end_length"]+50] #switch back to 50 if this doesnt help
+                info["subset_start"] = info["align_start"] + info["start_length"] - 50
+                info["subset_end"] = info["align_end"]-info["end_length"]+50 -1
         else:
             info["subset"] = self.seq[info["align_start"] + info["start_length"] - 400: info["align_end"]-info["end_length"]+400]
+            info["subset_start"] = info["align_start"] + info["start_length"] - 400
+            info["subset_end"] = info["align_end"]-info["end_length"]+400 -1
         #print("read: ", self.read_id, ":" ,info["subset"])
         #print("align start:", info["align_start"], " align_len: ", info["prefix_align_length"])
         #print("align end:", info["align_end"], " align_len: ", info["suffix_align_length"])
@@ -210,7 +224,7 @@ class Process_Read:
             if self.keep_region(prefix_info, suffix_info):
                 self.target_info[row.name] = self.get_align_info(row, prefix_info, suffix_info)
 
-    def run_viterbi(self,hmm_file,rev_hmm_file,hidden_states,rev_states,out,build_pre, prefix_idx):
+    def run_viterbi(self,hmm_file,rev_hmm_file,hidden_states,rev_states,out,build_pre, prefix_idx,output_labelled_seqs):
         '''
         This function runs viterbi on the current read across all identified targets.
         '''
@@ -253,7 +267,7 @@ class Process_Read:
             #do I want to include everything I did before in this method?? I will start with it here and assume the
             #methods are either static in this class or will be imported by name
             labeled_seq, pointers,MLE = label_states(vit_out, curr_states)
-            likelihood, sub_labels,repeats,context, final_repeat_like = calc_likelihood(vit_out, pointers,labeled_seq, curr_states, self.target_info[name]["subset"])
+            likelihood, sub_labels,repeats,context, final_repeat_like, repeat_start, repeat_end = calc_likelihood(vit_out, pointers,labeled_seq, curr_states, self.target_info[name]["subset"], self.target_info[name]["subset_start"],self.target_info[name]["subset_end"])
             #save state labels for KMeans method, if time we can figure out how to do this without saving a file
             label_file = open(out+"_"+ name + "_labeled_seqs.txt","a")
             label_file.write(self.read_id + "\t" +".".join(labeled_seq)+"\n")
@@ -263,10 +277,11 @@ class Process_Read:
             score = self.target_info[name]["prefix_mapq"] + self.target_info[name]["suffix_mapq"]
 
             out_file = open(out+"_"+name+"_counts.txt","a")
-            out_file.write(self.read_id + " " + self.target_info[name]["strand"] + " "+ str(score) + " " + str(MLE) + " " + str(likelihood)+ " " + str(final_repeat_like) + " " + str(self.target_info[name]["align_start"]) + " "+str(self.target_info[name]["align_end"])+ " " + str(count) + "\n")
+            out_file.write(self.read_id + " " + self.target_info[name]["strand"] + " "+ str(score) + " " + str(MLE) + " " + str(likelihood)+ " " + str(final_repeat_like) + " " + str(repeat_start) + " "+ str(repeat_end) + " "+ str(self.target_info[name]["align_start"]) + " "+str(self.target_info[name]["align_end"])+ " " + str(count) + "\n")
             out_file.close()
-            #output labelled sequence to context file for given target
-            print_labelled(self.read_id,self.target_info[name]["strand"],sub_labels,context,pointers,out+"_"+name+"_context_labeled.txt")
+            #output labelled sequence to context file for given target if output_labelled_seqs is set
+            if output_labelled_seqs:
+                print_labelled(self.read_id,self.target_info[name]["strand"],sub_labels,context,pointers,out + "_labelled_seqs/"+name+"_context_labeled.txt")
         return True
 
         

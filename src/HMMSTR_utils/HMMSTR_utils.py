@@ -59,7 +59,7 @@ def read_fastq(fileObject):
   seq = ''
   # skip any useless leading information
   for line in fileObject:
-    print(line)
+    #print(line)
     if line.startswith('@'):
       header = line.strip()
       break
@@ -126,11 +126,11 @@ def read_model_params(input_file, param_type):
     input_df = pd.read_csv(input_file, sep="\t",index_col=0)
     if param_type == 'repeat':
        #add blank row
-      print(input_df)
+      #print(input_df)
       input_df.loc[len( pd.DataFrame(input_df).index)] = 0
       input_df.index = ['A','G','C','T','']
     param_dict = input_df.to_dict()
-    print(param_dict)
+    #print(param_dict)
    return param_dict
 
 def generate_input_sheet(coords_file, chrom_sizes_file, ref,flanking_length=200):
@@ -177,3 +177,55 @@ def generate_input_sheet(coords_file, chrom_sizes_file, ref,flanking_length=200)
     targets_dict['repeat'].append(target.repeat)
     targets_dict['suffix'].append(ref_aligner.seq(name=target.chr,start=target.end,end=target.suffix_end))
   return pd.DataFrame(targets_dict)
+
+def remove_flanking_outliers(counts_data):
+  '''
+  filter outlier reads based on their flanking sequence likelihood.
+  this is useful for filtering off target reads and reads with large insertions
+  in their repeat sequence
+  '''
+  counts_data["flanking_likelihood"] = counts_data["subset_likelihood"] - counts_data["repeat_likelihood"]
+  thresh = counts_data["flanking_likelihood"].mean() - counts_data["flanking_likelihood"].std()
+  df_final=counts_data[counts_data.flanking_likelihood > thresh]
+  outliers= counts_data[~(counts_data.read_id.isin(df_final.read_id))]
+  return df_final, outliers.read_id
+
+def sort_alleles(curr_row, new_row): #this is only for diploid, need to translate to any allele number
+    #establish an order of alleles based on median
+    allele_med_cols = curr_row[curr_row.index.str.contains("median")]
+    allele_med_cols_order = allele_med_cols.sort_values(ascending=False) #largest to smallest, can change
+    allele_med_cols_order = allele_med_cols.sort_values() 
+    for i,allele in enumerate(allele_med_cols_order):
+        #get current corresponding original row
+        curr_allele = allele_med_cols_order.index[i].split(":")[0]
+        curr_allele_cols = curr_row[curr_row.index.str.contains(curr_allele)]
+        new_row["A"+str(i+1)+":median"] = curr_allele_cols[curr_allele + ":median"]
+        new_row["A"+str(i+1)+":mode"] = curr_allele_cols[curr_allele + ":mode"]
+        new_row["A"+str(i+1)+":SD"] = curr_allele_cols[curr_allele + ":SD"]
+        new_row["A"+str(i+1)+":supporting_reads"] = curr_allele_cols[curr_allele + ":supporting_reads"]
+    return new_row
+
+def sort_outputs(curr_row, max_peaks,bootstrap,allele_specif_CIs, stranded=False):
+  '''
+  Use this to sort the column names to be in the same order and order alleles from smallest to largest 
+  '''
+  column_names_in_order = []
+  column_names_in_order.append("name")
+  if stranded:
+      column_names_in_order.append("strand")
+  for i in range(1,max_peaks+1):
+      column_names_in_order.append("A"+str(i)+":median")
+      column_names_in_order.append("A"+str(i)+":mode")
+      column_names_in_order.append("A"+str(i)+":SD")
+      column_names_in_order.append("A"+str(i)+":supporting_reads")
+      if bootstrap:
+        column_names_in_order.append("A"+str(i)+":median_CI")
+      if allele_specif_CIs:
+        column_names_in_order.append("A"+ str(i+1)+":median_CI_allele_specific")
+  column_names_in_order.append("num_supporting_reads")
+  column_names_in_order.append("bandwidth")
+  column_names_in_order.append("peak_calling_method")
+  new_row = curr_row[column_names_in_order].copy()
+  new_row_final = sort_alleles(curr_row, new_row)
+
+  return new_row_final

@@ -11,24 +11,30 @@ import os
 import statistics as stat
 from collections import Counter
 
-from HMMSTR_utils.HMMSTR_utils import throw_low_cov, remove_outlier_IQR
+from HMMSTR_utils.HMMSTR_utils import throw_low_cov, remove_outlier_IQR, remove_flanking_outliers
 warnings.filterwarnings('ignore')
 
 class KDE_cluster:
-    def __init__(self, target, out, out_count_name, discard_outliers):
+    def __init__(self, target, out, out_count_name, discard_outliers,flanking_like_filter,curr_strand=None):
         self.name = target[0]
         self.out = out
         self.discard_outliers = discard_outliers #this will be used when we goto cluster
+        self.flanking_like_filter = flanking_like_filter
         out_count_file = out + "_" + self.name + out_count_name
         if os.path.exists(out_count_file):
             counts_data = pd.read_csv(out_count_file, sep=" ",header=None)
-            counts_data.columns = ["read_id","strand","align_score","neg_log_likelihood","subset_likelihood","repeat_likelihood","align_start", "align_end","counts"]
+            counts_data.columns = ["read_id","strand","align_score","neg_log_likelihood","subset_likelihood","repeat_likelihood","repeat_start","repeat_end","align_start", "align_end","counts"]
             self.data = counts_data[counts_data.counts != 0] #discard 0 count reads
+            if curr_strand is not None:
+                self.strand = curr_strand
+                self.data = counts_data[counts_data.counts != 0][counts_data.strand == curr_strand] #if this is a stranded run, we only want to keep data from the current strand
+            else:
+                self.strand = None
             if self.data.empty:
                 self.data = None
         else:
             self.data = None
-    def get_stats(self, plot_hists, filter_outliers=False, filter_quantile=0.25):
+    def get_stats(self, plot_hists, filter_outliers=False, filter_quantile=0.25,flanking_like_filter=False, strand=None):
         '''
         Function to calculate summary stats for a single target
 
@@ -44,15 +50,20 @@ class KDE_cluster:
         counts_data['freq'] = counts_data.groupby(by='counts')['read_id'].transform('count')
         #ADDED outlier filtering
         outliers = []
+        flanking_outliers=[]
         if filter_outliers:
             filtered, outliers = remove_outlier_IQR(counts_data.counts, filter_quantile)
             #counts_data = counts_data[counts_data.counts.isin(filtered)]
         counts_data['outlier'] = np.where(counts_data.counts.isin(outliers),True , False)
+        #check for flanking likelihood outliers
+        if flanking_like_filter:
+            flanking_filtered, flanking_outliers = remove_flanking_outliers(counts_data)
+        counts_data['flanking_outlier'] = np.where(counts_data.read_id.isin(flanking_outliers),True , False)
         #testing out including plotting here, will need to add a flag
         if plot_hists:
-            self.plot_stats(counts_data, self.out)
+            self.plot_stats(counts_data, self.out, strand)
         return counts_data
-    def plot_stats(self,counts_data,out):
+    def plot_stats(self,counts_data,out, strand=None):
         '''
         plot the histograms and median likelihood ratio line plots (hopefully with error bars)
 
@@ -67,11 +78,14 @@ class KDE_cluster:
         plt.xlabel("Repeat count")
         plt.ylabel("Number of reads")
         fig = plt.gcf()
-        fig.savefig(str(out +self.name+ "_supporting_reads_hist.pdf"))
+        if self.strand is not None:
+            fig.savefig(str(self.out + "_plots/"+self.name+ "_"+ self.strand +"_supporting_reads_hist.pdf"))
+        else:
+            fig.savefig(str(self.out + "_plots/"+self.name+"_supporting_reads_hist.pdf"))
         plt.show()
         plt.clf()
         return #currently does not work and isnt called
-    def call_clusters(self,kernel="gaussian", bandwidth = 'scott', max_k = 2, output_plots = False, subset=None, filter_quantile=0.25, allele_specific = False, allele = None):
+    def call_clusters(self,kernel="gaussian", bandwidth = 'scott', max_k = 2, output_plots = False, subset=None, filter_quantile=0.25, allele_specific = False, allele = None, strand=None):
         '''
         This function uses kernal density estimation to resolve alleles. It is ideal when data is normally distributed
         and has a relatively small range or overlapping count distributions
@@ -101,9 +115,18 @@ class KDE_cluster:
         '''
         #filter outliers if called for
         outliers = pd.Series()
+        flanking_outliers = pd.Series()
         if self.discard_outliers:
             filtered, outliers = remove_outlier_IQR(self.data.counts,filter_quantile)
             a = np.array(filtered).reshape(-1,1)
+        if self.flanking_like_filter:
+            flanking_filtered, flanking_outliers = remove_flanking_outliers(self.data)
+            #check if we also filtered outliers so we can do both
+            if self.discard_outliers:
+                a = np.array(flanking_filtered[flanking_filtered.counts.isin(filtered.unique())].counts).reshape(-1,1) #use reads that are both in both of our filtered sets
+            else:
+                a = np.array(flanking_filtered.counts).reshape(-1,1)
+
         else:
             a = np.array(self.data.counts).reshape(-1,1)
         if subset is not None:
@@ -121,14 +144,14 @@ class KDE_cluster:
             if len(a) == 0:
                 clusters = -1
                 #print("data is empty, returning empty allele call for target: ", self.name)
-                allele_calls = {"H"+str(k)+":median":-1 for k in range(1,max_k+1)}
-                allele_calls.update({"H"+str(k)+":mode":-1 for k in range(1,max_k+1)})
-                allele_calls.update({"H"+str(k)+":SD":-1 for k in range(1,max_k+1)})
-                allele_calls.update({"H"+str(k)+":supporting_reads":-1 for k in range(1,max_k+1)})
+                allele_calls = {"A"+str(k)+":median":-1 for k in range(1,max_k+1)}
+                allele_calls.update({"A"+str(k)+":mode":-1 for k in range(1,max_k+1)})
+                allele_calls.update({"A"+str(k)+":SD":-1 for k in range(1,max_k+1)})
+                allele_calls.update({"A"+str(k)+":supporting_reads":-1 for k in range(1,max_k+1)})
                 allele_calls["bandwidth"] = -1
                 return clusters,allele_calls , outliers
 
-            print("an exception occurred!")
+            #print("an exception occurred!")
             print("Switching to a constant bandwidth=0.5")
             kde = KernelDensity( bandwidth=0.5,kernel=kernel).fit(a)
         #s = linspace(min(a)-5,max(a)+5)
@@ -201,11 +224,11 @@ class KDE_cluster:
             #FIXME need to change cluster names to be sequential, this would also be fixed by limiting clusters called by bandwidth
             #allele_calls = {k+"_KDE_maxima": round(float(maxima[k])) for k in k_clusters}
             allele_calls = {}
-            allele_calls.update({"H" +str(k)+":supporting_reads":sizes[k] for k in k_clusters})
-            allele_calls.update({"H" +str(k)+":SD":np.std(all_clusters[k]) for k in k_clusters})
+            allele_calls.update({"A" +str(k)+":supporting_reads":sizes[k] for k in k_clusters})
+            allele_calls.update({"A" +str(k)+":SD":np.std(all_clusters[k]) for k in k_clusters})
             #updated 080123, added stats in case the maxima is weird from clustering outliers or a far-off allele
-            allele_calls.update({"H" +str(k)+":median":np.median(all_clusters[k]) for k in k_clusters})
-            allele_calls.update({"H" +str(k)+":mode":int(st.mode(np.array(all_clusters[k]),keepdims=True)[0][0]) for k in k_clusters}) #I dont know if this will be the same, for some reason my results from margits data dont line up with finding the mode
+            allele_calls.update({"A" +str(k)+":median":np.median(all_clusters[k]) for k in k_clusters})
+            allele_calls.update({"A" +str(k)+":mode":int(st.mode(np.array(all_clusters[k]),keepdims=True)[0][0]) for k in k_clusters}) #I dont know if this will be the same, for some reason my results from margits data dont line up with finding the mode
             
             allele_calls["bandwidth"] = kde.bandwidth_
         elif len(k_clusters) == 1:
@@ -221,9 +244,9 @@ class KDE_cluster:
             #allele_calls = {k+"_KDE_maxima":-1 for k in k_clusters}
             allele_calls = {}
             allele_calls["bandwidth"] = -1
-            allele_calls.update({"H"+str(k)+":SD":0 for k in k_clusters})
-            allele_calls.update({"H"+str(k)+":median":0 for k in k_clusters})
-            allele_calls.update({"H"+str(k)+":mode":0 for k in k_clusters})
+            allele_calls.update({"A"+str(k)+":SD":0 for k in k_clusters})
+            allele_calls.update({"A"+str(k)+":median":0 for k in k_clusters})
+            allele_calls.update({"A"+str(k)+":mode":0 for k in k_clusters})
             return clusters,allele_calls , outliers
 
         if output_plots:
@@ -238,7 +261,7 @@ class KDE_cluster:
                         plt.plot(s[ma], np.exp(e[ma]), 'bo',label="KDE Maxima")
                     
                 except:
-                    print("Encounted an exception in homozygous plotting case")
+                    print("Encounted an exception in homozygous plotting case (KDE)")
                 #plt.plot(s[ma], e[ma], 'go') #plot just the points
                 if allele_specific:
                     plt.title(self.name + " KDE: Allele " + allele)
@@ -248,12 +271,18 @@ class KDE_cluster:
                     plt.vlines(x = allele_calls["H1:median"], ymin=ymin, ymax=ymax,linewidth=2, color='purple',linestyle="dashed",label="Median")
                     plt.legend()  
                     fig = plt.gcf()
-                    fig.savefig(str(self.out + "_" + self.name + "_allele_"+ allele+"_KDE.pdf"))
+                    if strand is not None:
+                        fig.savefig(str(self.out + "_plots/"+self.name +"_" +strand+"_allele_"+ allele+"_KDE.pdf"))
+                    else:
+                        fig.savefig(str(self.out + "_plots/"+self.name + "_allele_"+ allele+"_KDE.pdf"))
                 else:
                     plt.title(self.name + " KDE")
                     plt.legend()  
                     fig = plt.gcf()
-                    fig.savefig(str(self.out + self.name + "_KDE.pdf"))
+                    if strand is not None:
+                        fig.savefig(str(self.out + "_plots/"+self.name +"_" +strand+ "_KDE.pdf"))
+                    else:
+                        fig.savefig(str(self.out + "_plots/"+self.name + "_KDE.pdf"))
                 plt.show()
                 plt.clf()
             elif len(mi) == 1:
@@ -263,7 +292,7 @@ class KDE_cluster:
                     plt.plot(s[:],np.exp(e[:]),color="black",lw=2,linestyle="-",label="Kernel Density Estimate")
                     plt.plot(s[ma], np.exp(e[ma]), 'bo',label="KDE Maxima")
                 except:
-                    print("whoops")
+                    print("An exception has occured")
                 plt.plot(s[mi], np.exp(e[mi]), 'ro',label="KDE Minima")
                 if allele_specific:
                     plt.title(self.name + " KDE: Allele "+ allele)
@@ -273,12 +302,19 @@ class KDE_cluster:
                     plt.vlines(x = allele_calls["H1:median"], ymin=ymin, ymax=ymax,linewidth=2, color='purple',linestyle="dashed",label="Median")
                     plt.legend()  
                     fig = plt.gcf()
-                    fig.savefig(str(self.out + "_" + self.name + "_allele_"+ allele+"_KDE.pdf"))
+                    if strand is not None:
+                        fig.savefig(str(self.out + "_plots/"+ self.name +"_"+ strand+"_allele_"+ allele+"_KDE.pdf"))
+                    else:
+                        fig.savefig(str(self.out + "_plots/"+ self.name + "_allele_"+ allele+"_KDE.pdf"))
+
                 else:
                     plt.title(self.name + " KDE")
                     plt.legend()  
                     fig = plt.gcf()
-                    fig.savefig(str(self.out + self.name + "_KDE.pdf"))
+                    if strand is not None:
+                        fig.savefig(str(self.out + "_plots/"+ self.name +"_"+ strand+ "_KDE.pdf"))
+                    else:
+                        fig.savefig(str(self.out + "_plots/"+ self.name + "_KDE.pdf"))
                 plt.show()
                 plt.clf()
             #dynamically print clusters
@@ -299,16 +335,23 @@ class KDE_cluster:
                     plt.vlines(x = allele_calls["H1:median"], ymin=ymin, ymax=ymax,linewidth=2, color='purple',linestyle="dashed",label="Median")
                     plt.legend()  
                     fig = plt.gcf()
-                    fig.savefig(str(self.out + "_" + self.name + "_allele_"+ allele+"_KDE.pdf"))
+                    if strand is not None:
+                        fig.savefig(str(self.out + "_plots/"+self.name + "_"+ strand+"_allele_"+ allele+"_KDE.pdf"))
+                    else:
+                        fig.savefig(str(self.out + "_plots/"+self.name + "_allele_"+ allele+"_KDE.pdf"))
+
                 else:
                     plt.title(self.name + " KDE")
                     plt.legend()  
                     fig = plt.gcf()
-                    fig.savefig(str(self.out + self.name + "_KDE.pdf"))
+                    if strand is not None:
+                        fig.savefig(str(self.out + "_plots/"+ self.name + "_"+ strand+"_KDE.pdf"))
+                    else:
+                        fig.savefig(str(self.out + "_plots/"+ self.name + "_KDE.pdf"))
                 plt.show()
                 plt.clf()
-        return clusters, allele_calls, outliers
-    def assign_clusters(self, clusters, outliers):
+        return clusters, allele_calls, outliers, flanking_outliers
+    def assign_clusters(self, clusters, outliers, flanking_outliers):
         '''
         Function to assign individual reads to clusters determined by KDE
 
@@ -330,8 +373,10 @@ class KDE_cluster:
         labels = pd.DataFrame()
         labels['counts'] = count_assignemnts.keys()
         labels['cluster_assignments'] = count_assignemnts.values()
-        assignment_df = self.data.merge(labels, how = 'left', on = 'counts')
+        # TODO figure out if we want this to be consistent with gmm assignment output or if this is fine since we label outliers
+        assignment_df = self.data.merge(labels, how = 'left', on = 'counts') #I changed this to not assign a cluster to reads that are outliers
         assignment_df['outlier'] = np.where(assignment_df.counts.isin(outliers),True , False)
+        assignment_df['flanking_outlier'] = np.where(assignment_df.read_id.isin(flanking_outliers),True , False)
         return assignment_df
 
     #add bootstrapping to KDE class
@@ -342,34 +387,34 @@ class KDE_cluster:
         filtered = throw_low_cov(data)
         call_lists = {}
         for i in range(1,max_peaks+1):
-            #call_lists["H"+str(i)+"_mean"]=[]
-            call_lists["H"+str(i)+":median"]=[]
-            #call_lists["H"+str(i)+"_mode"]=[]
+            #call_lists["A"+str(i)+"_mean"]=[]
+            call_lists["A"+str(i)+":median"]=[]
+            #call_lists["A"+str(i)+"_mode"]=[]
 
         for i in range(resample_size):
             #sample up to the depth of the experiment with replacement
             curr_sample = filtered.sample(frac=1,axis=0, replace = True)
             #call gmm with original freqs on this subset
-            clusters, allele_calls, outliers = self.call_clusters(kernel="gaussian", bandwidth = 'scott', max_k = max_peaks, output_plots = False, subset=curr_sample, filter_quantile=0.25) 
+            clusters, allele_calls, outliers, flanking_outliers = self.call_clusters(kernel="gaussian", bandwidth = 'scott', max_k = max_peaks, output_plots = False, subset=curr_sample, filter_quantile=0.25) 
             #add current call to lists
             for j in range(1,max_peaks+1):
-                if ("H"+str(j)+":median") not in allele_calls.keys():
-                    call_lists["H"+str(j)+":median"].append(0)
-                    allele_calls["H"+str(j)+":median"] = 0
+                if ("A"+str(j)+":median") not in allele_calls.keys():
+                    call_lists["A"+str(j)+":median"].append(0)
+                    allele_calls["A"+str(j)+":median"] = 0
                     continue
-                #call_lists["H"+str(j)+"_mean"].append(curr_row[0]['H'+str(j)+":mean"])
-                call_lists["H"+str(j)+":median"].append(allele_calls["H"+str(j)+":median"])
+                #call_lists["A"+str(j)+"_mean"].append(curr_row[0]['H'+str(j)+":mean"])
+                call_lists["A"+str(j)+":median"].append(allele_calls["A"+str(j)+":median"])
         #mean_CIs = {}
         median_CIs = {}
         #mode_CIs = {}
         adjustment = float((1.0 - CI_width)/2)
         for j in range(1,max_peaks+1): #get confidence interval for each allele called
-            #curr_means = call_lists["H"+str(j)+"_mean"]
-            curr_medians = call_lists["H"+str(j)+":median"]
-            #curr_modes = call_lists["H"+str(j)+"_mode"]
-            #curr_row[0]["H"+str(j)+":mean_CI"] = (np.quantile(curr_means,adjustment),np.quantile(curr_means,1-adjustment))
-            median_CIs["H"+str(j)+":median_CI"] = (np.quantile(curr_medians,adjustment),np.quantile(curr_medians,1-adjustment))
-            #curr_row[0]["H"+str(j)+":mode_CI"] = (np.quantile(curr_modes,adjustment),np.quantile(curr_modes,1-adjustment))
+            #curr_means = call_lists["A"+str(j)+"_mean"]
+            curr_medians = call_lists["A"+str(j)+":median"]
+            #curr_modes = call_lists["A"+str(j)+"_mode"]
+            #curr_row[0]["A"+str(j)+":mean_CI"] = (np.quantile(curr_means,adjustment),np.quantile(curr_means,1-adjustment))
+            median_CIs["A"+str(j)+":median_CI"] = (np.quantile(curr_medians,adjustment),np.quantile(curr_medians,1-adjustment))
+            #curr_row[0]["A"+str(j)+":mode_CI"] = (np.quantile(curr_modes,adjustment),np.quantile(curr_modes,1-adjustment))
         return median_CIs
 
     def bootstrap_KDE_allele_specific(self,data, resample_size, CI_width, out):
@@ -384,7 +429,7 @@ class KDE_cluster:
                 #sample up to the depth of the experiment with replacement
                 curr_sample = filtered.sample(frac=1,axis=0, replace = True)
                 #call gmm with original freqs on this subset
-                clusters, allele_calls, outliers = self.call_clusters(kernel="gaussian", bandwidth = 'scott', max_k = 1, output_plots = False, subset=curr_sample, filter_quantile=0.25)  #single allele bootstrapping
+                clusters, allele_calls, outliers, flanking_outliers = self.call_clusters(kernel="gaussian", bandwidth = 'scott', max_k = 1, output_plots = False, subset=curr_sample, filter_quantile=0.25)  #single allele bootstrapping
                 #add current call to lists
                 #call_lists["mean"].append(curr_row[0]["H1:mean"])
                 call_lists["median"].append(allele_calls["H1:median"])

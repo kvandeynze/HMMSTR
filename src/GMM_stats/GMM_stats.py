@@ -11,7 +11,7 @@ from matplotlib.ticker import MaxNLocator
 import warnings
 warnings.filterwarnings('ignore')
 
-from HMMSTR_utils.HMMSTR_utils import remove_outlier_IQR, throw_low_cov
+from HMMSTR_utils.HMMSTR_utils import remove_outlier_IQR, throw_low_cov, remove_flanking_outliers
 
 class GMMStats:
     def __init__(self, target_row):
@@ -20,7 +20,7 @@ class GMMStats:
         self.repeat = target_row[2].rstrip().upper()
         self.suffix = target_row[3].rstrip().upper()[:30]
     
-    def plot_stats(self,counts_data,out):
+    def plot_stats(self,counts_data,out, strand=None):
         '''
         plot the histograms and median likelihood ratio line plots (hopefully with error bars)
 
@@ -35,11 +35,14 @@ class GMMStats:
         plt.xlabel("Repeat count")
         plt.ylabel("Number of reads")
         fig = plt.gcf()
-        fig.savefig(str(out +self.name+ "_supporting_reads_hist.pdf"))
+        if strand is not None:
+            fig.savefig(str(out + "_plots/"+self.name+ "_"+strand+"_supporting_reads_hist.pdf"))
+        else:
+            fig.savefig(str(out + "_plots/"+self.name+ "_supporting_reads_hist.pdf"))
         plt.show()
         plt.clf()
         return #currently does not work and isnt called
-    def get_stats(self, out_count_file, out, plot_hists, filter_outliers=False, filter_quantile=0.25):
+    def get_stats(self, out_count_file, out, plot_hists, filter_outliers=False, filter_quantile=0.25, flanking_like_filter=False, curr_strand=None):
         '''
         Function to calculate summary stats for a single target
 
@@ -52,20 +55,28 @@ class GMMStats:
         '''
         #read output file
         counts_data = pd.read_csv(out_count_file, sep=" ",header=None)
-        counts_data.columns = ["read_id","strand","align_score","neg_log_likelihood","subset_likelihood","repeat_likelihood","align_start", "align_end","counts"]
+        counts_data.columns = ["read_id","strand","align_score","neg_log_likelihood","subset_likelihood","repeat_likelihood","repeat_start","repeat_end","align_start", "align_end","counts"]
+        
+        if curr_strand is not None:
+            counts_data = counts_data[counts_data.strand == curr_strand]
+        
         counts_data['freq'] = counts_data.groupby(by='counts')['read_id'].transform('count')
         #ADDED outlier filtering
         outliers = []
+        flanking_outliers = []
         if filter_outliers:
             filtered, outliers = remove_outlier_IQR(counts_data.counts, filter_quantile)
             #counts_data = counts_data[counts_data.counts.isin(filtered)]
         counts_data['outlier'] = np.where(counts_data.counts.isin(outliers),True , False)
+        if flanking_like_filter:
+            flanking_filtered, flanking_outliers = remove_flanking_outliers(counts_data)
+        counts_data['flanking_outlier'] = np.where(counts_data.read_id.isin(flanking_outliers),True , False)
         #testing out including plotting here, will need to add a flag
         if plot_hists:
-            self.plot_stats(counts_data, out)
+            self.plot_stats(counts_data, out, curr_strand)
         return counts_data
 
-    def call_peaks(self,X_orig,out, num_max_peaks, plot=True, save_allele_plots = True):
+    def call_peaks(self,X_orig,out, num_max_peaks, plot=True, save_allele_plots = True, strand=None):
         # https://www.cbrinton.net/ECE20875-2020-Spring/W11/gmms_notebook.pdf
         rng = np.random.RandomState(seed=1)
 
@@ -90,11 +101,11 @@ class GMMStats:
             else:
                 cluster_assignments = np.array([-1])
             for i in range(1,num_max_peaks+1):
-                #curr_mean = "H"+str(i)+":mean"
-                curr_median = "H"+str(i)+":median"
-                curr_mode = "H"+str(i)+":mode"
-                curr_sd = "H" + str(i) + ":SD"
-                curr_support = "H" + str(i) + ":supporting_reads"
+                #curr_mean = "A"+str(i)+":mean"
+                curr_median = "A"+str(i)+":median"
+                curr_mode = "A"+str(i)+":mode"
+                curr_sd = "A" + str(i) + ":SD"
+                curr_support = "A" + str(i) + ":supporting_reads"
                 #if curr_mean not in curr_dict.keys():
                    # curr_dict[curr_mean] = 0 #don't include the mean since our distributions are left skewed, report median and mode
                 if curr_median not in curr_dict.keys():
@@ -106,7 +117,7 @@ class GMMStats:
                 if curr_support not in curr_dict.keys():
                     curr_dict[curr_support] = 0
         # for i in range(1,num_max_peaks+1):
-        #     curr_dict["H"+str(i)+":SD"] = final_peaks_SD[i-1]
+        #     curr_dict["A"+str(i)+":SD"] = final_peaks_SD[i-1]
             curr_dict["num_supporting_reads"] = len(X_orig.index)
             return pd.Series(curr_dict), cluster_assignments
         # Fit models with 1-10 components
@@ -169,11 +180,17 @@ class GMMStats:
                 if show_legend:
                     ax.legend()
                 if not subplot: #save full peaks plot
-                    plt.savefig(out + self.name + "peaks.pdf",bbox_inches='tight')
+                    if strand is not None:
+                        plt.savefig(out + "_plots/"+ self.name +"_"+strand+ "peaks.pdf",bbox_inches='tight')
+                    else:
+                        plt.savefig(out + "_plots/"+ self.name + "peaks.pdf",bbox_inches='tight')
                     plt.show()
                     plt.clf()
                 else:
-                    plt.savefig(out + self.name + "allele_"+ str(i+1)+".pdf",bbox_inches='tight')
+                    if strand is not None:
+                        plt.savefig(out + "_plots/"+ self.name + "_"+ strand+"allele_"+ str(i+1)+".pdf",bbox_inches='tight')
+                    else:
+                        plt.savefig(out + "_plots/"+ self.name + "allele_"+ str(i+1)+".pdf",bbox_inches='tight')
                     plt.show()
                     plt.clf()
                 plt.show()
@@ -192,7 +209,10 @@ class GMMStats:
             plt.legend()
             plt.tight_layout()
             plt.title(self.name+": AIC and BIC")
-            plt.savefig(out + self.name + "AIC_BIC.pdf",bbox_inches='tight')
+            if strand is not None:
+                plt.savefig(out + "_plots/"+ self.name +"_"+strand+ "_AIC_BIC.pdf",bbox_inches='tight')
+            else:
+                plt.savefig(out + "_plots/"+ self.name +"_AIC_BIC.pdf",bbox_inches='tight')
             plt.show()
             plt.clf()
             fig = plt.gcf()
@@ -233,19 +253,19 @@ class GMMStats:
             cluster_stats[i]['supporting_reads'] = len(np.where(cluster_assignments == i)[0])
         #unravel cluster_stats dictionary for curr_row
         for i in cluster_stats.keys():
-            #curr_dict["H" + str(i+1) + ":mean"] = cluster_stats[i]["mean"]
-            curr_dict["H" + str(i+1) + ":median"] = cluster_stats[i]["median"]
-            curr_dict["H" + str(i+1) + ":mode"] = cluster_stats[i]["mode"]
-            curr_dict["H" + str(i+1) + ":SD"] = cluster_stats[i]["SD"]
-            curr_dict["H" + str(i+1) + ":supporting_reads"] = cluster_stats[i]["supporting_reads"]
+            #curr_dict["A" + str(i+1) + ":mean"] = cluster_stats[i]["mean"]
+            curr_dict["A" + str(i+1) + ":median"] = cluster_stats[i]["median"]
+            curr_dict["A" + str(i+1) + ":mode"] = cluster_stats[i]["mode"]
+            curr_dict["A" + str(i+1) + ":SD"] = cluster_stats[i]["SD"]
+            curr_dict["A" + str(i+1) + ":supporting_reads"] = cluster_stats[i]["supporting_reads"]
 
         #check for missing columns and fill them if not there
         for i in range(1,num_max_peaks+1):
-            #curr_mean = "H"+str(i)+":mean"
-            curr_median = "H"+str(i)+":median"
-            curr_mode = "H"+str(i)+":mode"
-            curr_sd = "H" + str(i) + ":SD"
-            curr_support = "H" + str(i) + ":supporting_reads"
+            #curr_mean = "A"+str(i)+":mean"
+            curr_median = "A"+str(i)+":median"
+            curr_mode = "A"+str(i)+":mode"
+            curr_sd = "A" + str(i) + ":SD"
+            curr_support = "A" + str(i) + ":supporting_reads"
             #if curr_mean not in curr_dict.keys():
                 #curr_dict[curr_mean] = 0
             if curr_median not in curr_dict.keys():
@@ -269,9 +289,9 @@ class GMMStats:
         filtered = throw_low_cov(data)
         call_lists = {}
         for i in range(1,max_peaks+1):
-            #call_lists["H"+str(i)+"_mean"]=[]
-            call_lists["H"+str(i)+"_median"]=[]
-            #call_lists["H"+str(i)+"_mode"]=[]
+            #call_lists["A"+str(i)+"_mean"]=[]
+            call_lists["A"+str(i)+"_median"]=[]
+            #call_lists["A"+str(i)+"_mode"]=[]
 
         for i in range(resample_size):
             #sample up to the depth of the experiment with replacement
@@ -280,20 +300,20 @@ class GMMStats:
             curr_row = self.call_peaks(curr_sample, out ,max_peaks, plot=False) 
             #add current call to lists
             for j in range(1,max_peaks+1):
-                #call_lists["H"+str(j)+"_mean"].append(curr_row[0]['H'+str(j)+":mean"])
-                call_lists["H"+str(j)+"_median"].append(curr_row[0]['H'+str(j)+":median"])
-                #call_lists["H"+str(j)+"_mode"].append(curr_row[0]['H'+str(j)+":mode"])
+                #call_lists["A"+str(j)+"_mean"].append(curr_row[0]['H'+str(j)+":mean"])
+                call_lists["A"+str(j)+"_median"].append(curr_row[0]['H'+str(j)+":median"])
+                #call_lists["A"+str(j)+"_mode"].append(curr_row[0]['H'+str(j)+":mode"])
         #mean_CIs = {}
         median_CIs = {}
         #mode_CIs = {}
         adjustment = float((1.0 - CI_width)/2)
         for j in range(1,max_peaks+1): #get confidence interval for each allele called
-            #curr_means = call_lists["H"+str(j)+"_mean"]
-            curr_medians = call_lists["H"+str(j)+"_median"]
-            #curr_modes = call_lists["H"+str(j)+"_mode"]
-            #curr_row[0]["H"+str(j)+":mean_CI"] = (np.quantile(curr_means,adjustment),np.quantile(curr_means,1-adjustment))
-            curr_row[0]["H"+str(j)+":median_CI"] = (np.quantile(curr_medians,adjustment),np.quantile(curr_medians,1-adjustment))
-            #curr_row[0]["H"+str(j)+":mode_CI"] = (np.quantile(curr_modes,adjustment),np.quantile(curr_modes,1-adjustment))
+            #curr_means = call_lists["A"+str(j)+"_mean"]
+            curr_medians = call_lists["A"+str(j)+"_median"]
+            #curr_modes = call_lists["A"+str(j)+"_mode"]
+            #curr_row[0]["A"+str(j)+":mean_CI"] = (np.quantile(curr_means,adjustment),np.quantile(curr_means,1-adjustment))
+            curr_row[0]["A"+str(j)+":median_CI"] = (np.quantile(curr_medians,adjustment),np.quantile(curr_medians,1-adjustment))
+            #curr_row[0]["A"+str(j)+":mode_CI"] = (np.quantile(curr_modes,adjustment),np.quantile(curr_modes,1-adjustment))
         return curr_row[0]
 
     def bootstrap_gmm_allele_specific(self,data, resample_size, CI_width, out):
