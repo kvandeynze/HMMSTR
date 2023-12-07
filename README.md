@@ -19,7 +19,7 @@ HMMSTR is optimized for targeted sequencing experiments and can be run with a si
 ## Installation
 HMMSTR is available on Pypi and Conda**
 ```
-pip install -i https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple HMMSTR==0.1.5
+pip install -i https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple HMMSTR==0.1.10
 ```
 (conda install here)
 (git clone install here)
@@ -53,13 +53,14 @@ HMMSTR has 2 input modes:
 
 
 Optionally, the user may also input all options as a text file which each input parameter and option on its own line. An example of this can be found in X. This file is also automatically output to [out_prefix]_run_input.txt as a record of the run.
-
 ### Required Positional Arguments
 |  Argument &nbsp; &nbsp; &nbsp; | Description |
 |---|---|
 |out| Path to output directory with prefix for all results in this run|
 |inFile| Sequence file in fasta or fastq format, can be gzipped (must end with .gz)|
-
+<details>
+  <summary> Optional Arguments </summary>
+  
 ### Optional Arguments
 | Argument &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;| Description |
 |---|---|
@@ -110,7 +111,10 @@ Optionally, the user may also input all options as a text file which each input 
 |--resample_size| Number of times to resample the repeat copy number distribution during bootstrapping (default:x)|
 |--allele_specific_CIs| Output allele-specific bootstrapped confidence intervals. This process separates data by assigned alleles before sampling.|
 |--allele_specific_plots| Output allele-specific histograms with model of best fit|
-
+</details>
+<details>
+<summary> Advanced Options </summary>
+  
 ### Advanced Options
 #### Custom Model Parameter Options
 Optional tsv inputs to set custom model parameters.
@@ -134,45 +138,82 @@ Parameters to use to test different clustering methods on your data
 |---|---|
 | --save_intermediates | Flag designating to save intermediate files including model inputs, raw count files, and state sequence files. NOTE: raw count files are required to recall alleles without rerunning the counting algorithm, see ```--cluster_only```|
 | --cluster_only | Only run peak calling step on existing raw repeat copy counts data ```'out''target_name'_counts.txt```. NOTE: Must use the same output and target names as the run that produced the counts files.|
+</details>
 
 ## Example Use Cases
+<details>
+  <summary> Basic Use: Single Plasmid Target </summary>
+  
 ### Basic Use: Single Plasmid Target
-Here, we run HMMSTR on a sequence file containing nanopore reads from a plasmid construct with variable copies of an AAAAG repeat motif. Since these are plasmid contructs, we wrote our input tsv file ```AAAAG_input.txt``` by setting the prefix column to the 200bp upstream sequnce directly flanking the AAAAG repeat from the known backbone sequence and set the suffix column with the downstream flanking sequence. For this example, we will use all default parameters with the exception of ```--output_hist``` and ```--max_peaks```.
+Here, we run HMMSTR on a sequence file containing nanopore reads from a plasmid construct with variable copies of an AAAAG repeat motif. Since these are plasmid contructs, we wrote our input tsv file ```AAAAG_input.txt``` by setting the prefix column to the 200bp upstream sequnce directly flanking the AAAAG repeat from the known backbone sequence and set the suffix column with the downstream flanking sequence. For this example, we will use all default parameters with the exception of ```--output_plots```, ```--max_peaks```, and ```--output_labelled_seqs```.
 ```
-hmmstr targets_tsv AAAAG_input.txt ./tutorial_1 AAAAG_11012021_3000_sample.fasta --max_peaks 3 --output_hist
+hmmstr targets_tsv AAAAG_input.txt ./tutorial_1 AAAAG_11012021_3000_sample.fasta --max_peaks 3 --output_plots --output_labelled_seqs
 ```
-Outputs:
-1. ```tutorial_1_genotype_calls.tsv```: TSV containing final allele calls per target (see detailed output section for column descriptions)
-2. ```tutorial_1read_assignments.tsv```: TSV containing read level copy number predictions and allele assignments
-3. ```tutorial_1_AAAAG_final_out.tsv```: TSV containing additional read-level stats reported from viterbi algorithm, can be used to make custom plots if desired. This file is produced for each input target.
-4. ```tutorial_1_AAAAG_context_labeled.txt```: Text file contianing repeat sequence and flanking context sequence colored by the optimal state path along with the read name and strand. This can be viewed on the command line. This is helpful when determining if the prefix/suffix you inputted are well fit to the repeat of interest and can help in debugging your inputs. This file is produced for each input target.
-5. ```tutorial_1AAAAGpeaks.pdf```: (Optional) Supporting read histogram displayed with the model of best fit as a density plot -- GMM or KDE depending on the peak caller chosen.
-6. ```tutorial_1AAAAGAIC_BIC.pdf```: (Optional) If GMM chosen, the AIC and BIC are plot and outputted here. These metrics are used to determine the most likely number of clusters.
-7. ```tutorial_1AAAAG_supporting_reads_hist.pdf```: (Optional) Raw supporting read histogram, copy number by number of supporting reads.
+#### Outputs:
+see detailed output descriptions here <-- link to file or additional readme
+##### Default Outputs
+1. ```tutorial_1_genotype_calls.tsv```: TSV containing final allele calls per target
+2. ```tutorial_1_read_assignments.tsv```: TSV containing read level statistics and coordinates, copy number predictions, and allele assignments
+3. ```tutorial_1_run_parameters.txt```: Text file with all parameters used in the run in "parameter : value" format including default values.
+4. ```tutorial_1_run_input.txt```: Text file with all inputs in the format compatible with running HMMSTR with a file input, that is, one input parameter per line in the same format as the command line version. This file can be used to reproduce the run or used as a record of the run.
+
+##### Optional Outputs
+The following are output to a directory with suffix "_labelled_seqs
+1. ```tutorial_1_AAAAG_context_labeled.txt```: (Optional) Text file contianing repeat sequence and flanking context sequence colored by the optimal state path along with the read name and strand. This can be viewed on the command line. This is helpful when determining if the prefix/suffix you inputted are well fit to the repeat of interest and can help in debugging your inputs. This file is produced for each input target.
+
+The following are output to a directory with suffix "_plots"
+1. ```tutorial_1AAAAGpeaks.pdf```: (Optional) Supporting read histogram displayed with the model of best fit as a density plot -- GMM or KDE depending on the peak caller chosen.
+2. ```tutorial_1AAAAGAIC_BIC.pdf```: (Optional) If GMM chosen, the AIC and BIC are plot and outputted here. These metrics are used to determine the most likely number of clusters.
+3. ```tutorial_1AAAAG_supporting_reads_hist.pdf```: (Optional) Raw supporting read histogram, copy number by number of supporting reads.
+
 Below is an example of the *context_labeled.txt files:
 ![context labeled example](images/AAAAG_example_context_labelled.jpg)
 * Red rectangles represent deletions, green represents insertions, bases labeled as in the repeat sequence are white and the prefix and suffix are in grey
-The following plots are produced by the given command:
-* Supporting read histogram (7)
+
+#### The following plots are produced by the given command:
+
+Supporting read histogram
 ![AAAAG example supporting read histogram](images/tutorial_1AAAAG_supporting_reads_hist.jpg)
-* Model of best fit -- GMM (5)
+Model of best fit -- GMM
 ![AAAAG example model of best fit](images/tutorial_1AAAAGpeaks.jpg)
-* AIC/BIC plot (6)
+AIC/BIC plot
 ![AAAAG example AIC/BIC](images/tutorial_1AAAAGAIC_BIC.jpg)
 
 If the same command is run with the KDE ```--peakcalling_method``` option, the model of best fit plot would be the following:
 ```
-hmmstr targets_tsv AAAAG_input.txt ./tutorial_1 AAAAG_11012021_3000_sample.fasta --max_peaks 3 --output_hist --peakcalling_method kde
+hmmstr targets_tsv AAAAG_input.txt ./tutorial_1 AAAAG_11012021_3000_sample.fasta --max_peaks 3 --output_plots --peakcalling_method kde
 ```
 ![KDE model of best fit](images/tutorial_1_kdeAAAAG_KDE.jpg)
 
 ### Including allele specific output plots and confidence intervals
 HMMSTR also includes options to visualize per-read copy number prediction distributions in an allele-specific format. Below is how we would use HMMSTR to output these plots as well as allele-specific confidence intervals. Note: these confidence intervals are produced by bootstrapping the median of a given allele with 100 resamples.
 ```
-hmmstr targets_tsv AAAAG_input.txt ./tutorial_1 AAAAG_11012021_3000_sample.fasta --output_hist --max_peaks 3 --bootstrap --resample_size 100 --allele_specific_CIs --allele_specific_plots
+hmmstr targets_tsv AAAAG_input.txt ./tutorial_1 AAAAG_11012021_3000_sample.fasta --output_plots --max_peaks 3 --bootstrap --resample_size 100 --allele_specific_CIs --allele_specific_plots
 ```
 Allele 1           |  Allele 2           |  Allele 3
 :-------------------------:|:-------------------------:|:-------------------------:
 ![](images/tutorial_1_allele_specificAAAAGallele_1.jpg)  |  ![](images/tutorial_1_allele_specificAAAAGallele_2.jpg)  |  ![](images/tutorial_1_allele_specificAAAAGallele_3.jpg)
 (30.0, 30.0) | (58.0, 59.0) | (16.0, 16.0)
 
+ </details>
+ <details>
+   <summary> Repeat Expansion Panel </summary>
+   
+   ### Repeat Expansion Panel
+   HMMSTR was designed with our repeat expansion panel as described in our manuscript (<- link) in mind. While HMMSTR performs optimally at a 100bp prefix and suffix model across all targets, in practice some targets do have more optimal model sizes based on their sequence context. For this reason, we provide input target files (both coordinates and tsv inputs) separated by optimal model sizes as well as an example bash script (link here) for running our panel. Below is an example of how to run one set of our targets (targets with 100bp flanking sequence model as their optimal model) in ```coordinates``` mode with a description of a few caveats you may run into running HMMSTR on samples from individuals with repeat expansion disorders.
+
+   Run with ```coordinates``` input and all default parameters except ```--mapq_cutoff``` (we want to be strict with reads we accept)
+   ```
+hmmstr coordinates $TARGET_COORDS_100bp $CHR_SIZES $REF $OUT_100bp $INFILE --mapq_cutoff 60
+  ```
+This run will also produce the accompanying input file for future ```target_tsv``` runs under the output directory and prefix as ```_inputs.tsv```
+
+One caveat you may run into is exceedingly low (1-2 reads) or unbalanced coverage across expanded alleles in an expansion positive sample. In this case, HMMSTR may discard the expanded allele if either ```--discard_outliers``` or ```--peakcalling_method kde_throw_outliers``` are passed. To account for this, it is recommended that in these cases you do not use either of these modes but rather override the default peak caller as follows:
+```
+hmmstr coordinates $TARGET_COORDS_100bp $CHR_SIZES $REF $OUT_100bp $INFILE --mapq_cutoff 60 --peakcalling_method gmm
+```
+This will ensure the entire dataset is considered during genotyping. Note: this will also result in an increase of false heterozygous calls for homozygous regions. If you wish to have high accuracy for both expanded alleles and homozygotes, consider running HMMSTR with both settings on the same sequence file.
+
+If there is sufficient coverage across all alleles in the run, this is not an issue.
+   
+ </details>
