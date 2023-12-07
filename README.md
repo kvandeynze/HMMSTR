@@ -167,12 +167,14 @@ The following are output to a directory with suffix "_plots"
 Below is an example of the *context_labeled.txt files:
 ![context labeled example](images/AAAAG_example_context_labelled.jpg)
 * Red rectangles represent deletions, green represents insertions, bases labeled as in the repeat sequence are white and the prefix and suffix are in grey
-The following plots are produced by the given command:
-* Supporting read histogram (7)
+
+#### The following plots are produced by the given command:
+
+Supporting read histogram
 ![AAAAG example supporting read histogram](images/tutorial_1AAAAG_supporting_reads_hist.jpg)
-* Model of best fit -- GMM (5)
+Model of best fit -- GMM
 ![AAAAG example model of best fit](images/tutorial_1AAAAGpeaks.jpg)
-* AIC/BIC plot (6)
+AIC/BIC plot
 ![AAAAG example AIC/BIC](images/tutorial_1AAAAGAIC_BIC.jpg)
 
 If the same command is run with the KDE ```--peakcalling_method``` option, the model of best fit plot would be the following:
