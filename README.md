@@ -54,7 +54,7 @@ HMMSTR has 2 input modes:
 
 Optionally, the user may also input all options as a text file which each input parameter and option on its own line. An example of this can be found in X. This file is also automatically output to [out_prefix]_run_input.txt as a record of the run.
 
-### Required Positional Arguments
+<summary> ### Required Positional Arguments <summary>
 |  Argument &nbsp; &nbsp; &nbsp; | Description |
 |---|---|
 |out| Path to output directory with prefix for all results in this run|
