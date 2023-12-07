@@ -53,8 +53,8 @@ HMMSTR has 2 input modes:
 
 
 Optionally, the user may also input all options as a text file which each input parameter and option on its own line. An example of this can be found in X. This file is also automatically output to [out_prefix]_run_input.txt as a record of the run.
-
-<summary> ### Required Positional Arguments <summary>
+<details>
+### Required Positional Arguments
 |  Argument &nbsp; &nbsp; &nbsp; | Description |
 |---|---|
 |out| Path to output directory with prefix for all results in this run|
@@ -110,6 +110,7 @@ Optionally, the user may also input all options as a text file which each input 
 |--resample_size| Number of times to resample the repeat copy number distribution during bootstrapping (default:x)|
 |--allele_specific_CIs| Output allele-specific bootstrapped confidence intervals. This process separates data by assigned alleles before sampling.|
 |--allele_specific_plots| Output allele-specific histograms with model of best fit|
+<details>
 
 ### Advanced Options
 #### Custom Model Parameter Options
