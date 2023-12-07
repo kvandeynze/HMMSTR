@@ -145,7 +145,7 @@ Parameters to use to test different clustering methods on your data
   <summary> Basic Use: Single Plasmid Target </summary>
   
 ### Basic Use: Single Plasmid Target
-Here, we run HMMSTR on a sequence file containing nanopore reads from a plasmid construct with variable copies of an AAAAG repeat motif. Since these are plasmid contructs, we wrote our input tsv file ```AAAAG_input.txt``` by setting the prefix column to the 200bp upstream sequnce directly flanking the AAAAG repeat from the known backbone sequence and set the suffix column with the downstream flanking sequence. For this example, we will use all default parameters with the exception of ```--output_hist``` and ```--max_peaks```.
+Here, we run HMMSTR on a sequence file containing nanopore reads from a plasmid construct with variable copies of an AAAAG repeat motif. Since these are plasmid contructs, we wrote our input tsv file ```AAAAG_input.txt``` by setting the prefix column to the 200bp upstream sequnce directly flanking the AAAAG repeat from the known backbone sequence and set the suffix column with the downstream flanking sequence. For this example, we will use all default parameters with the exception of ```--output_plots```, ```--max_peaks```, and ```--output_labelled_seqs```.
 ```
 hmmstr targets_tsv AAAAG_input.txt ./tutorial_1 AAAAG_11012021_3000_sample.fasta --max_peaks 3 --output_plots --output_labelled_seqs
 ```
