@@ -190,9 +190,10 @@ def remove_flanking_outliers(counts_data):
   outliers= counts_data[~(counts_data.read_id.isin(df_final.read_id))]
   return df_final, outliers.read_id
 
-def sort_alleles(curr_row, new_row): #this is only for diploid, need to translate to any allele number
+#FIXME need to include CIs sorted by allele here
+def sort_alleles(curr_row, new_row, bootstrap, allele_specif_CIs): #this is only for diploid, need to translate to any allele number
     #establish an order of alleles based on median
-    allele_med_cols = curr_row[curr_row.index.str.contains("median")]
+    allele_med_cols = curr_row[curr_row.index.str.endswith("median")]
     allele_med_cols_order = allele_med_cols.sort_values(ascending=False) #largest to smallest, can change
     allele_med_cols_order = allele_med_cols.sort_values() 
     for i,allele in enumerate(allele_med_cols_order):
@@ -203,6 +204,12 @@ def sort_alleles(curr_row, new_row): #this is only for diploid, need to translat
         new_row["A"+str(i+1)+":mode"] = curr_allele_cols[curr_allele + ":mode"]
         new_row["A"+str(i+1)+":SD"] = curr_allele_cols[curr_allele + ":SD"]
         new_row["A"+str(i+1)+":supporting_reads"] = curr_allele_cols[curr_allele + ":supporting_reads"]
+        if bootstrap:
+          new_row["A"+str(i+1)+":median_CI"] = curr_allele_cols[curr_allele + ":median_CI"]
+        if allele_specif_CIs:
+          curr_CI = curr_allele_cols[curr_allele + ":median_CI_allele_specific"][0] #tuple, take lower bound and find closest allele assignment
+          closest_allele_bootstrap = allele_med_cols_order[(allele_med_cols_order-curr_CI).abs().argsort()].index[0].split(":")[0]
+          new_row["A"+ str(i+1)+":median_CI_allele_specific"] = curr_row[closest_allele_bootstrap + ":median_CI_allele_specific"]
     return new_row
 
 def sort_outputs(curr_row, max_peaks,bootstrap,allele_specif_CIs, stranded=False):
@@ -221,11 +228,11 @@ def sort_outputs(curr_row, max_peaks,bootstrap,allele_specif_CIs, stranded=False
       if bootstrap:
         column_names_in_order.append("A"+str(i)+":median_CI")
       if allele_specif_CIs:
-        column_names_in_order.append("A"+ str(i+1)+":median_CI_allele_specific")
+        column_names_in_order.append("A"+ str(i)+":median_CI_allele_specific")
   column_names_in_order.append("num_supporting_reads")
   column_names_in_order.append("bandwidth")
   column_names_in_order.append("peak_calling_method")
   new_row = curr_row[column_names_in_order].copy()
-  new_row_final = sort_alleles(curr_row, new_row)
+  new_row_final = sort_alleles(curr_row, new_row,bootstrap, allele_specif_CIs)
 
   return new_row_final

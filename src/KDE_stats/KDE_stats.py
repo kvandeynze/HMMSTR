@@ -267,8 +267,8 @@ class KDE_cluster:
                     plt.title(self.name + " KDE: Allele " + allele)
                     ymin, ymax = plt.ylim()
                     plt.ylim(ymin, ymax)
-                    plt.vlines(x = allele_calls["H1:mode"],ymin=ymin, ymax=ymax,linewidth=2, color='r',linestyle="dashed", label="Mode")
-                    plt.vlines(x = allele_calls["H1:median"], ymin=ymin, ymax=ymax,linewidth=2, color='purple',linestyle="dashed",label="Median")
+                    plt.vlines(x = allele_calls["A1:mode"],ymin=ymin, ymax=ymax,linewidth=2, color='r',linestyle="dashed", label="Mode")
+                    plt.vlines(x = allele_calls["A1:median"], ymin=ymin, ymax=ymax,linewidth=2, color='purple',linestyle="dashed",label="Median")
                     plt.legend()  
                     fig = plt.gcf()
                     if strand is not None:
@@ -298,8 +298,8 @@ class KDE_cluster:
                     plt.title(self.name + " KDE: Allele "+ allele)
                     ymin, ymax = plt.ylim()
                     plt.ylim(ymin, ymax)
-                    plt.vlines(x = allele_calls["H1:mode"],ymin=ymin, ymax=ymax,linewidth=2, color='r',linestyle="dashed", label="Mode")
-                    plt.vlines(x = allele_calls["H1:median"], ymin=ymin, ymax=ymax,linewidth=2, color='purple',linestyle="dashed",label="Median")
+                    plt.vlines(x = allele_calls["A1:mode"],ymin=ymin, ymax=ymax,linewidth=2, color='r',linestyle="dashed", label="Mode")
+                    plt.vlines(x = allele_calls["A1:median"], ymin=ymin, ymax=ymax,linewidth=2, color='purple',linestyle="dashed",label="Median")
                     plt.legend()  
                     fig = plt.gcf()
                     if strand is not None:
@@ -331,8 +331,8 @@ class KDE_cluster:
                     plt.title(self.name + " KDE: Allele " +allele)
                     ymin, ymax = plt.ylim()
                     plt.ylim(ymin, ymax)
-                    plt.vlines(x = allele_calls["H1:mode"],ymin=ymin, ymax=ymax,linewidth=2, color='r',linestyle="dashed", label="Mode")
-                    plt.vlines(x = allele_calls["H1:median"], ymin=ymin, ymax=ymax,linewidth=2, color='purple',linestyle="dashed",label="Median")
+                    plt.vlines(x = allele_calls["A1:mode"],ymin=ymin, ymax=ymax,linewidth=2, color='r',linestyle="dashed", label="Mode")
+                    plt.vlines(x = allele_calls["A1:median"], ymin=ymin, ymax=ymax,linewidth=2, color='purple',linestyle="dashed",label="Median")
                     plt.legend()  
                     fig = plt.gcf()
                     if strand is not None:
@@ -392,6 +392,12 @@ class KDE_cluster:
             #call_lists["A"+str(i)+"_mode"]=[]
 
         for i in range(resample_size):
+            if resample_size > 100 and (i+1)%10 == 0:
+                print("Round " + str(i+1)+ "/" + str(resample_size))
+            elif resample_size < 100 and resample_size > 10 and (i+1)%5 == 0:
+                print("Round " + str(i+1)+ "/" + str(resample_size))
+            elif resample_size < 10:
+                print("Round " + str(i+1)+ "/" + str(resample_size))
             #sample up to the depth of the experiment with replacement
             curr_sample = filtered.sample(frac=1,axis=0, replace = True)
             #call gmm with original freqs on this subset
@@ -426,13 +432,19 @@ class KDE_cluster:
             #call_lists["mode"]=[]
     
             for i in range(resample_size):
+                if resample_size > 100 and (i+1)%10 == 0:
+                    print("Round " + str(i+1)+ "/" + str(resample_size))
+                elif resample_size < 100 and resample_size > 10 and (i+1)%5 == 0:
+                    print("Round " + str(i+1)+ "/" + str(resample_size))
+                elif resample_size < 10:
+                    print("Round " + str(i+1)+ "/" + str(resample_size))
                 #sample up to the depth of the experiment with replacement
                 curr_sample = filtered.sample(frac=1,axis=0, replace = True)
                 #call gmm with original freqs on this subset
                 clusters, allele_calls, outliers, flanking_outliers = self.call_clusters(kernel="gaussian", bandwidth = 'scott', max_k = 1, output_plots = False, subset=curr_sample, filter_quantile=0.25)  #single allele bootstrapping
                 #add current call to lists
-                #call_lists["mean"].append(curr_row[0]["H1:mean"])
-                call_lists["median"].append(allele_calls["H1:median"])
+                #call_lists["mean"].append(curr_row[0]["A1:mean"])
+                call_lists["median"].append(allele_calls["A1:median"])
                 #call_lists["mode"].append(curr_row[0]["H1:mode"])
             #mean_CIs = {}
             median_CIs = {}

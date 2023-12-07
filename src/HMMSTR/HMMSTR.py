@@ -223,6 +223,7 @@ def ratio_gmm_stats(row, out, out_count_name,plot_hists,max_peaks, filter_outlie
         return
     
     if bootstrap:
+        print("Starting bootstrap...")
         curr_row, cluster_assignments_bootstrap = gmm_stats.bootstrap_gmm(curr_row,final_data[final_data.outlier == False], resample_size, CI_width, max_peaks, out)
     if allele_specif_CIs:
         for assignment in final_data['cluster_assignments'].unique():
@@ -364,6 +365,7 @@ def call_peaks(row, out, out_count_name, plot_hists, max_peaks, filter_outliers=
         assignments = pd.merge(left=assignments, right=curr_kde.data[["read_id","freq"]], how="left")
         if bootstrap:
             if clusters != -1:
+                print("Starting bootstrap...")
                 #TODO I don't think I should be subsetting this beforehand since I call clustering from the kde object which has the fields for filtering outliers, change this once original test is done
                 median_CIs = curr_kde.bootstrap_KDE(assignments, resample_size, CI_width, max_peaks, out)
                 allele_calls_series = pd.concat([allele_calls_series,pd.Series(median_CIs)])
@@ -374,8 +376,7 @@ def call_peaks(row, out, out_count_name, plot_hists, max_peaks, filter_outliers=
                 if pd.isna(assignment):
                     #print("hi")
                     continue
-                #print(assignment)
-                #print(assignments[assignments.assignment == assignment])
+                print("Starting allele-specific bootstrap...")
                 allele_calls_series["A"+ str(assignment)+":median_CI_allele_specific"] = curr_kde.bootstrap_KDE_allele_specific(assignments[assignments.cluster_assignments == assignment], resample_size, CI_width, out)
         
         #get total number of supporting reads
@@ -442,9 +443,11 @@ def call_peaks(row, out, out_count_name, plot_hists, max_peaks, filter_outliers=
             return
         
         if bootstrap:
+            print("Starting bootstrap...")
             curr_row = gmm_stats.bootstrap_gmm(curr_row,final_data2, resample_size, CI_width, max_peaks, out)
         if allele_specif_CIs:
             for assignment in final_data2['cluster_assignments'].unique():
+                print("Starting allele-specific bootstrap...")
                 median_CIs = gmm_stats.bootstrap_gmm_allele_specific(final_data2[final_data2.cluster_assignments == assignment],resample_size,CI_width,out)
                 curr_row["A"+ str(assignment+1)+":median_CI_allele_specific"] = median_CIs
     
@@ -547,6 +550,7 @@ def call_peaks_stranded(row, out, out_count_name, plot_hists, max_peaks, filter_
         assignments = pd.merge(left=assignments, right=curr_kde.data[["read_id","freq"]], how="left")
         if bootstrap:
             if clusters != -1:
+                print("Starting bootstrap...")
                 #TODO I don't think I should be subsetting this beforehand since I call clustering from the kde object which has the fields for filtering outliers, change this once original test is done
                 median_CIs = curr_kde.bootstrap_KDE(assignments, resample_size, CI_width, max_peaks, out)
                 allele_calls_series = pd.concat([allele_calls_series,pd.Series(median_CIs)])
@@ -559,6 +563,7 @@ def call_peaks_stranded(row, out, out_count_name, plot_hists, max_peaks, filter_
                     continue
                 #print(assignment)
                 #print(assignments[assignments.assignment == assignment])
+                print("Starting allele-specific bootstrap...")
                 allele_calls_series["A"+ str(assignment)+":median_CI_allele_specific"] = curr_kde.bootstrap_KDE_allele_specific(assignments[assignments.cluster_assignments == assignment], resample_size, CI_width, out)
         
         #get total number of supporting reads
@@ -620,6 +625,7 @@ def call_peaks_stranded(row, out, out_count_name, plot_hists, max_peaks, filter_
             return
         
         if bootstrap:
+            print("Starting bootstrap...")
             curr_row = gmm_stats.bootstrap_gmm(curr_row,final_data2, resample_size, CI_width, max_peaks, out)
         if allele_specif_CIs:
             for assignment in final_data2['cluster_assignments'].unique():
@@ -749,14 +755,14 @@ def main():
             os.mkdir(directory) 
             print("Directory '% s' created" % directory)
         else:
-            print("Directory '% s' alread exists! Plots will be output to existing directory..." % directory)
+            print("Directory '% s' already exists! Plots will be output to existing directory..." % directory)
     if args.output_labelled_seqs: #FIXME check if directory already exists
         directory = args.out + "_labelled_seqs"
         if os.path.exists(directory) == False:
             os.mkdir(directory) 
             print("Directory '% s' created" % directory)
         else:
-            print("Directory '% s' alread exists! Labelled sequences will be output to existing directory..." % directory)
+            print("Directory '% s' already exists! Labelled sequences will be output to existing directory..." % directory)
     #check input mode and check if inputs compatible for coordinates
     if args.subcommand == 'coordinates':
         #check inputs

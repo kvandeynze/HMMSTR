@@ -90,10 +90,10 @@ class GMMStats:
             if X.shape[0] == 1:
                 try:
                     # curr_dict["H1:mean"] = X.counts[0]
-                    curr_dict["H1:median"] = X.counts[0]
-                    curr_dict["H1:mode"] = X.counts[0]
-                    curr_dict["H1:SD"] = 0
-                    curr_dict["H1:supporting_reads"] = 1
+                    curr_dict["A1:median"] = X.counts[0]
+                    curr_dict["A1:mode"] = X.counts[0]
+                    curr_dict["A1:SD"] = 0
+                    curr_dict["A1:supporting_reads"] = 1
                     cluster_assignments = np.array([0])
                 except:
                     print("X.counts[0] does not exist, continuing to write null row...")
@@ -294,6 +294,12 @@ class GMMStats:
             #call_lists["A"+str(i)+"_mode"]=[]
 
         for i in range(resample_size):
+            if resample_size > 100 and (i+1)%10 == 0:
+                print("Round " + str(i+1)+ "/" + str(resample_size))
+            elif resample_size < 100 and resample_size > 10 and (i+1)%5 == 0:
+                print("Round " + str(i+1)+ "/" + str(resample_size))
+            elif resample_size < 10:
+                print("Round " + str(i+1)+ "/" + str(resample_size))
             #sample up to the depth of the experiment with replacement
             curr_sample = filtered.sample(frac=1,axis=0, replace = True)
             #call gmm with original freqs on this subset
@@ -301,7 +307,7 @@ class GMMStats:
             #add current call to lists
             for j in range(1,max_peaks+1):
                 #call_lists["A"+str(j)+"_mean"].append(curr_row[0]['H'+str(j)+":mean"])
-                call_lists["A"+str(j)+"_median"].append(curr_row[0]['H'+str(j)+":median"])
+                call_lists["A"+str(j)+"_median"].append(curr_row[0]['A'+str(j)+":median"])
                 #call_lists["A"+str(j)+"_mode"].append(curr_row[0]['H'+str(j)+":mode"])
         #mean_CIs = {}
         median_CIs = {}
@@ -324,15 +330,21 @@ class GMMStats:
             #call_lists["mean"]=[]
             call_lists["median"]=[]
             #call_lists["mode"]=[]
-    
+
             for i in range(resample_size):
+                if resample_size > 100 and (i+1)%10 == 0:
+                    print("Round " + str(i+1)+ "/" + str(resample_size))
+                elif resample_size < 100 and resample_size > 10 and (i+1)%5 == 0:
+                    print("Round " + str(i+1)+ "/" + str(resample_size))
+                elif resample_size < 10:
+                    print("Round " + str(i+1)+ "/" + str(resample_size))
                 #sample up to the depth of the experiment with replacement
                 curr_sample = filtered.sample(frac=1,axis=0, replace = True)
                 #call gmm with original freqs on this subset
                 curr_row = self.call_peaks(curr_sample, out ,1, plot=False) #single allele bootstrapping
                 #add current call to lists
                 #call_lists["mean"].append(curr_row[0]["H1:mean"])
-                call_lists["median"].append(curr_row[0]["H1:median"])
+                call_lists["median"].append(curr_row[0]["A1:median"])
                 #call_lists["mode"].append(curr_row[0]["H1:mode"])
             #mean_CIs = {}
             median_CIs = {}
