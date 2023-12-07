@@ -60,6 +60,7 @@ Optionally, the user may also input all options as a text file which each input 
 |inFile| Sequence file in fasta or fastq format, can be gzipped (must end with .gz)|
 <details>
   <summary> Optional Arguments </summary>
+  
 ### Optional Arguments
 | Argument &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;| Description |
 |---|---|
