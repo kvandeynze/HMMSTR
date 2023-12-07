@@ -217,3 +217,13 @@ This will ensure the entire dataset is considered during genotyping. Note: this 
 If there is sufficient coverage across all alleles in the run, this is not an issue.
    
  </details>
+
+ <details>
+<summary>
+  FAQs and Common Use Cases
+</summary>
+1. Why use one peakcalling method over another?
+  - Auto (default): The default peakcaller will automatically designate a methods per target based on the distribution of the data. This assumes that you have enough coverage across both alleles such that one allele will not be identified as an outlier, such as when you have 30x coverage across the normal length allele and 1x coverage at the expanded allele.
+  - KDE: The Kernel Density peakcaller differentiates heterozygous and homozygous alleles better than the GMM; however, it is easily skewed by outliers if used without discarding outliers 
+   
+ </details>
