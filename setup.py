@@ -40,7 +40,8 @@ except ImportError:
 
 setup(
     name="HMMSTR",
-    version="0.1.6",
+    version="0.1.10",
+    python_requires='>=3.8.17',
     packages=["HMMSTR","GMM_stats","HMMSTR_utils","c_files","process_vit_res","profile_HMM","process_read","KDE_stats"],
     ext_modules=extensions,
     install_requires=['colorama','numpy','pandas','pickleshare','scikit-learn','scipy','seaborn','importlib-resources','mappy'],

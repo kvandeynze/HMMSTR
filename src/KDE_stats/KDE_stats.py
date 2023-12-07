@@ -235,10 +235,10 @@ class KDE_cluster:
             #this is the case when there is only 1 value detected thus it is the only allele that can be called
             #allele_calls = {"1_KDE_maxima":a[0][0]}
             allele_calls = {}
-            allele_calls.update({"H1:supporting_reads":sizes["1"]})
-            allele_calls.update({"H1:SD":np.std(all_clusters["1"])})
-            allele_calls.update({"H1:median":np.median(all_clusters["1"])})
-            allele_calls.update({"H1:mode":int(st.mode(np.array(all_clusters["1"]),keepdims=True)[0][0])})
+            allele_calls.update({"A1:supporting_reads":sizes["1"]})
+            allele_calls.update({"A1:SD":np.std(all_clusters["1"])})
+            allele_calls.update({"A1:median":np.median(all_clusters["1"])})
+            allele_calls.update({"A1:mode":int(st.mode(np.array(all_clusters["1"]),keepdims=True)[0][0])})
             allele_calls["bandwidth"] = kde.bandwidth_
         else:
             #allele_calls = {k+"_KDE_maxima":-1 for k in k_clusters}
