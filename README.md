@@ -111,7 +111,7 @@ Optionally, the user may also input all options as a text file which each input 
 |--resample_size| Number of times to resample the repeat copy number distribution during bootstrapping (default:x)|
 |--allele_specific_CIs| Output allele-specific bootstrapped confidence intervals. This process separates data by assigned alleles before sampling.|
 |--allele_specific_plots| Output allele-specific histograms with model of best fit|
-
+</details>
 <details>
 <summary> Advanced Options </summary>
 ### Advanced Options
