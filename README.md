@@ -154,6 +154,8 @@ see detailed output descriptions here <-- link to file or additional readme
 ##### Default Outputs
 1. ```tutorial_1_genotype_calls.tsv```: TSV containing final allele calls per target
 2. ```tutorial_1_read_assignments.tsv```: TSV containing read level statistics and coordinates, copy number predictions, and allele assignments
+3. ```tutorial_1_run_parameters.txt```: Text file with all parameters used in the run in "parameter : value" format including default values.
+4. ```tutorial_1_run_input.txt```: Text file with all inputs in the format compatible with running HMMSTR with a file input, that is, one input parameter per line in the same format as the command line version. This file can be used to reproduce the run or used as a record of the run.
 
 ##### Optional Outputs
 The following are output to a directory with suffix "_labelled_seqs
@@ -198,4 +200,20 @@ Allele 1           |  Allele 2           |  Allele 3
    <summary> Repeat Expansion Panel </summary>
    
    ### Repeat Expansion Panel
+   HMMSTR was designed with our repeat expansion panel as described in our manuscript (<- link) in mind. While HMMSTR performs optimally at a 100bp prefix and suffix model across all targets, in practice some targets do have more optimal model sizes based on their sequence context. For this reason, we provide input target files (both coordinates and tsv inputs) separated by optimal model sizes as well as an example bash script (link here) for running our panel. Below is an example of how to run one set of our targets (targets with 100bp flanking sequence model as their optimal model) in ```coordinates``` mode with a description of a few caveats you may run into running HMMSTR on samples from individuals with repeat expansion disorders.
+
+   Run with ```coordinates``` input and all default parameters except ```--mapq_cutoff``` (we want to be strict with reads we accept)
+   ```
+hmmstr coordinates $TARGET_COORDS_100bp $CHR_SIZES $REF $OUT_100bp $INFILE --mapq_cutoff 60
+  ```
+This run will also produce the accompanying input file for future ```target_tsv``` runs under the output directory and prefix as ```_inputs.tsv```
+
+One caveat you may run into is exceedingly low (1-2 reads) or unbalanced coverage across expanded alleles in an expansion positive sample. In this case, HMMSTR may discard the expanded allele if either ```--discard_outliers``` or ```--peakcalling_method kde_throw_outliers``` are passed. To account for this, it is recommended that in these cases you do not use either of these modes but rather override the default peak caller as follows:
+```
+hmmstr coordinates $TARGET_COORDS_100bp $CHR_SIZES $REF $OUT_100bp $INFILE --mapq_cutoff 60 --peakcalling_method gmm
+```
+This will ensure the entire dataset is considered during genotyping. Note: this will also result in an increase of false heterozygous calls for homozygous regions. If you wish to have high accuracy for both expanded alleles and homozygotes, consider running HMMSTR with both settings on the same sequence file.
+
+If there is sufficient coverage across all alleles in the run, this is not an issue.
+   
  </details>
