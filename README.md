@@ -49,7 +49,7 @@ HMMSTR has 2 input modes:
 ```coordinates``` also requires the following additional positional arguments:
 1. chrom_sizes: path to chromosome sizes file corresponding to the reference genome used
 2. ref: path to the reference genome to get flanking sequences from
-3. input_flank_length: Length of the prefix and suffix to get from the reference genome, must be longer than 30bp (Default) or the ```--flanking_size``` optional parameter, (optional, default: 200)
+3. input_flank_length: Length of the prefix and suffix to get from the reference genome, must be longer than 100bp (Default) or the ```--flanking_size``` optional parameter, (optional, default: 200)
 
 
 Optionally, the user may also input all options as a text file which each input parameter and option on its own line. An example of this can be found in X. This file is also automatically output to [out_prefix]_run_input.txt as a record of the run.
