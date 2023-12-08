@@ -19,7 +19,7 @@ HMMSTR is optimized for targeted sequencing experiments and can be run with a si
 ## Installation
 HMMSTR is available on Pypi and Conda**
 ```
-pip install -i https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple HMMSTR==0.1.10
+pip install -i https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple HMMSTR==0.1.11
 ```
 (conda install here)
 (git clone install here)
@@ -49,7 +49,7 @@ HMMSTR has 2 input modes:
 ```coordinates``` also requires the following additional positional arguments:
 1. chrom_sizes: path to chromosome sizes file corresponding to the reference genome used
 2. ref: path to the reference genome to get flanking sequences from
-3. input_flank_length: Length of the prefix and suffix to get from the reference genome, must be longer than 30bp (Default) or the ```--flanking_size``` optional parameter, (optional, default: 200)
+3. input_flank_length: Length of the prefix and suffix to get from the reference genome, must be longer than 100bp (Default) or the ```--flanking_size``` optional parameter, (optional, default: 200)
 
 
 Optionally, the user may also input all options as a text file which each input parameter and option on its own line. An example of this can be found in X. This file is also automatically output to [out_prefix]_run_input.txt as a record of the run.
@@ -200,7 +200,7 @@ Allele 1           |  Allele 2           |  Allele 3
    <summary> Repeat Expansion Panel </summary>
    
    ### Repeat Expansion Panel
-   HMMSTR was designed with our repeat expansion panel as described in our manuscript (<- link) in mind. While HMMSTR performs optimally at a 100bp prefix and suffix model across all targets, in practice some targets do have more optimal model sizes based on their sequence context. For this reason, we provide input target files (both coordinates and tsv inputs) separated by optimal model sizes as well as an example bash script (link here) for running our panel. Below is an example of how to run one set of our targets (targets with 100bp flanking sequence model as their optimal model) in ```coordinates``` mode with a description of a few caveats you may run into running HMMSTR on samples from individuals with repeat expansion disorders.
+   HMMSTR was designed with our repeat expansion panel as described in our manuscript (<- link) in mind. While HMMSTR performs optimally at a 100bp prefix and suffix model across all targets, in practice some targets do have more optimal model sizes based on their sequence context. For this reason, we provide [input target files](panel_target_inputs) (both coordinates and tsv inputs) separated by optimal model sizes as well as an example bash script (link here) for running our panel. Below is an example of how to run one set of our targets (targets with 100bp flanking sequence model as their optimal model) in ```coordinates``` mode with a description of a few caveats you may run into running HMMSTR on samples from individuals with repeat expansion disorders.
 
    Run with ```coordinates``` input and all default parameters except ```--mapq_cutoff``` (we want to be strict with reads we accept)
    ```
@@ -215,5 +215,15 @@ hmmstr coordinates $TARGET_COORDS_100bp $CHR_SIZES $REF $OUT_100bp $INFILE --map
 This will ensure the entire dataset is considered during genotyping. Note: this will also result in an increase of false heterozygous calls for homozygous regions. If you wish to have high accuracy for both expanded alleles and homozygotes, consider running HMMSTR with both settings on the same sequence file.
 
 If there is sufficient coverage across all alleles in the run, this is not an issue.
+   
+ </details>
+
+ <details>
+<summary>
+  FAQs and Common Use Cases
+</summary>
+1. Why use one peakcalling method over another?
+  - Auto (default): The default peakcaller will automatically designate a methods per target based on the distribution of the data. This assumes that you have enough coverage across both alleles such that one allele will not be identified as an outlier, such as when you have 30x coverage across the normal length allele and 1x coverage at the expanded allele.
+  - KDE: The Kernel Density peakcaller differentiates heterozygous and homozygous alleles better than the GMM; however, it is easily skewed by outliers if used without discarding outliers 
    
  </details>
