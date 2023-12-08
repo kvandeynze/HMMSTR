@@ -697,7 +697,7 @@ def main():
     #parser.add_argument("--exclude_sd", type=int,help="Number of standard deviations from the mean of tallest peaks to exclude neighboring peaks", default=2)
     parser.add_argument("--max_peaks", type=int,help="Maximum number of peaks to calculate AIC and BIC for in peak calling (default: %(default)s)",default=2)
     parser.add_argument("--cpus", type=int,help="Number of cpus to use. If none given, half of available cpus used (default: %(default)s)",default=int(mp.cpu_count()/2))
-    parser.add_argument("--flanking_size", type=int,help="Number of basepairs flanking repeat to encode in model, longer recommended for highly repeatitive regions (default: %(default)s)",default=30)
+    parser.add_argument("--flanking_size", type=int,help="Number of basepairs flanking repeat to encode in model, longer recommended for highly repeatitive regions (default: %(default)s)",default=100)
     #alignment parameters
     parser.add_argument("--mode", type=str,help="map-ont (Nanopore), pb (PacBio), or sr (short accurate reads, use for accurate short flanking sequence input) (default: %(default)s)",default="map-ont")
     parser.add_argument("--mapq_cutoff", type=int,help="MapQ cutoff for prefix and suffix alignment (default: %(default)s)",default=30)
