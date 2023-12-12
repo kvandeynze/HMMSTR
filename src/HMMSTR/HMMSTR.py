@@ -351,6 +351,7 @@ def call_peaks(row, out, out_count_name, plot_hists, max_peaks, filter_outliers=
         #account for differing column number for less than max_k peaks
         #print("unique assignements: ", assignments.assignment.unique())
         #print("max_k: ", max_k)
+
         if len(assignments[assignments.outlier == False][assignments.flanking_outlier == False].cluster_assignments.unique()) < max_peaks:
             for i in range(max_peaks - len(assignments[assignments.outlier == False][assignments.flanking_outlier == False].cluster_assignments.unique())):
                 j = len(assignments[assignments.outlier == False][assignments.flanking_outlier == False].cluster_assignments.unique())+1
@@ -360,7 +361,6 @@ def call_peaks(row, out, out_count_name, plot_hists, max_peaks, filter_outliers=
                 allele_calls["A"+str(i+j)+":SD"] = 0
         allele_calls["name"] = curr_kde.name
         allele_calls_series = pd.Series(allele_calls)
-
         #bootstrap
         assignments = pd.merge(left=assignments, right=curr_kde.data[["read_id","freq"]], how="left")
         if bootstrap:
@@ -508,7 +508,7 @@ def call_peaks_stranded(row, out, out_count_name, plot_hists, max_peaks, filter_
             return final #TODO figure out how to return in a stranded manner
         #get read info tsv
         curr_kde.data = curr_kde.get_stats(plot_hists, filter_outliers, filter_quantile, flanking_like_filter, strand=strand)
-        curr_kde.data.to_csv(out +"_"+ curr_kde.name +"_"+strand+"_final_out.tsv", index = False, sep="\t") #stranded out
+        #curr_kde.data.to_csv(out +"_"+ curr_kde.name +"_"+strand+"_final_out.tsv", index = False, sep="\t") #stranded out
         
         clusters, allele_calls, outliers, flanking_outliers = curr_kde.call_clusters(kernel=kernel, bandwidth=bandwidth,max_k=max_peaks, output_plots =  plot_hists, filter_quantile=filter_quantile,strand=strand)
         assignments = curr_kde.assign_clusters(clusters,outliers, flanking_outliers)

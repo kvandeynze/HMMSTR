@@ -116,10 +116,10 @@ class KDE_cluster:
         #filter outliers if called for
         outliers = pd.Series()
         flanking_outliers = pd.Series()
-        if self.discard_outliers:
+        if self.discard_outliers and self.flanking_like_filter == False: #only discard outliers
             filtered, outliers = remove_outlier_IQR(self.data.counts,filter_quantile)
             a = np.array(filtered).reshape(-1,1)
-        if self.flanking_like_filter:
+        elif self.flanking_like_filter: #either flanking filter or both
             flanking_filtered, flanking_outliers = remove_flanking_outliers(self.data)
             #check if we also filtered outliers so we can do both
             if self.discard_outliers:
