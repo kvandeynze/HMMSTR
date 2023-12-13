@@ -107,7 +107,7 @@ class Process_Read:
         else:
             return False
         
-    def get_align_info(self, row, prefix_info, suffix_info):
+    def get_align_info(self, row, prefix_info, suffix_info): #TODO I think we would need to make an alternative to this for softclips
         '''
         This function gets attributes of a given read given that a target has been identified
 
@@ -196,7 +196,7 @@ class Process_Read:
             return #return nothing if there is no repeat in this sequence, spurious alignment
         return info
 
-    def assign_targets(self, targets_df):
+    def assign_targets(self, targets_df):#TODO this would need to change to accomodate only having either suffix or prefix info, I currently filter reads on this
         '''
         This function takes alignment results for current process read object and determines which target(s)
         are in results
