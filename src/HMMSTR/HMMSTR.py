@@ -337,17 +337,23 @@ def call_peaks(row, out, out_count_name, plot_hists, max_peaks, filter_outliers=
         assignments["peak_calling_method"] = decision
         
         #only output flanking outlier if applicable
-        if flanking_like_filter:
-            if os.path.exists(out + "read_assignments.tsv") == False:
-                assignments[['name','read_id','strand', 'align_score','neg_log_likelihood', 'subset_likelihood', 'repeat_likelihood','repeat_start', 'repeat_end', 'align_start', 'align_end','counts', 'freq','cluster_assignments',"outlier","flanking_outlier","peak_calling_method"]].to_csv(out + "_read_assignments.tsv", sep="\t", index=False, mode="a")
-            else:
-                assignments[['name','read_id','strand', 'align_score','neg_log_likelihood', 'subset_likelihood', 'repeat_likelihood','repeat_start', 'repeat_end', 'align_start', 'align_end','counts', 'freq','cluster_assignments',"outlier","flanking_outlier","peak_calling_method"]].to_csv(out + "_read_assignments.tsv", sep="\t", index=False, mode="a", header=None)
-        else:
-            if os.path.exists(out + "read_assignments.tsv") == False:
-                assignments[['name','read_id','strand', 'align_score','neg_log_likelihood', 'subset_likelihood', 'repeat_likelihood','repeat_start', 'repeat_end', 'align_start', 'align_end','counts', 'freq','cluster_assignments',"outlier","peak_calling_method"]].to_csv(out + "_read_assignments.tsv", sep="\t", index=False, mode="a")
-            else:
-                assignments[['name','read_id','strand', 'align_score','neg_log_likelihood', 'subset_likelihood', 'repeat_likelihood','repeat_start', 'repeat_end', 'align_start', 'align_end','counts', 'freq','cluster_assignments',"outlier","peak_calling_method"]].to_csv(out + "_read_assignments.tsv", sep="\t", index=False, mode="a", header=None)
+        # if flanking_like_filter:
+        #     if os.path.exists(out + "read_assignments.tsv") == False:
+        #         assignments[['name','read_id','strand', 'align_score','neg_log_likelihood', 'subset_likelihood', 'repeat_likelihood','repeat_start', 'repeat_end', 'align_start', 'align_end','counts', 'freq','cluster_assignments',"outlier","flanking_outlier","peak_calling_method"]].to_csv(out + "_read_assignments.tsv", sep="\t", index=False, mode="a")
+        #     else:
+        #         assignments[['name','read_id','strand', 'align_score','neg_log_likelihood', 'subset_likelihood', 'repeat_likelihood','repeat_start', 'repeat_end', 'align_start', 'align_end','counts', 'freq','cluster_assignments',"outlier","flanking_outlier","peak_calling_method"]].to_csv(out + "_read_assignments.tsv", sep="\t", index=False, mode="a", header=None)
+        # else:
+        #     if os.path.exists(out + "read_assignments.tsv") == False:
+        #         assignments[['name','read_id','strand', 'align_score','neg_log_likelihood', 'subset_likelihood', 'repeat_likelihood','repeat_start', 'repeat_end', 'align_start', 'align_end','counts', 'freq','cluster_assignments',"outlier","peak_calling_method"]].to_csv(out + "_read_assignments.tsv", sep="\t", index=False, mode="a")
+        #     else:
+        #         assignments[['name','read_id','strand', 'align_score','neg_log_likelihood', 'subset_likelihood', 'repeat_likelihood','repeat_start', 'repeat_end', 'align_start', 'align_end','counts', 'freq','cluster_assignments',"outlier","peak_calling_method"]].to_csv(out + "_read_assignments.tsv", sep="\t", index=False, mode="a", header=None)
         
+        if flanking_like_filter:
+            assignments[['name','read_id','strand', 'align_score','neg_log_likelihood', 'subset_likelihood', 'repeat_likelihood','repeat_start', 'repeat_end', 'align_start', 'align_end','counts', 'freq','cluster_assignments',"outlier","flanking_outlier","peak_calling_method"]].to_csv(out + "_read_assignments.tsv", sep="\t", header=None,index=False, mode="a")
+        else:
+            assignments[['name','read_id','strand', 'align_score','neg_log_likelihood', 'subset_likelihood', 'repeat_likelihood','repeat_start', 'repeat_end', 'align_start', 'align_end','counts', 'freq','cluster_assignments',"outlier","peak_calling_method"]].to_csv(out + "_read_assignments.tsv", sep="\t", index=False, mode="a", header=None)
+
+
         #account for differing column number for less than max_k peaks
         #print("unique assignements: ", assignments.assignment.unique())
         #print("max_k: ", max_k)
@@ -458,16 +464,21 @@ def call_peaks(row, out, out_count_name, plot_hists, max_peaks, filter_outliers=
         assignments["peak_calling_method"] = decision
         assignments["cluster_assignments"] = assignments["cluster_assignments"]+1
         #assignments['assignment'] = final_data['cluster_assignments']
+        # if flanking_like_filter:
+        #     if os.path.exists(out + "read_assignments.tsv") == False:
+        #         assignments[['name','read_id','strand', 'align_score','neg_log_likelihood', 'subset_likelihood', 'repeat_likelihood','repeat_start', 'repeat_end', 'align_start', 'align_end','counts', 'freq','cluster_assignments',"outlier","flanking_outlier","peak_calling_method"]].to_csv(out + "_read_assignments.tsv", sep="\t", index=False, mode="a")
+        #     else:
+        #         assignments[['name','read_id','strand', 'align_score','neg_log_likelihood', 'subset_likelihood', 'repeat_likelihood','repeat_start', 'repeat_end', 'align_start', 'align_end', 'counts','freq','cluster_assignments',"outlier","flanking_outlier","peak_calling_method"]].to_csv(out + "_read_assignments.tsv", sep="\t", index=False, mode="a", header=None)
+        # else:
+        #     if os.path.exists(out + "read_assignments.tsv") == False:
+        #         assignments[['name','read_id','strand', 'align_score','neg_log_likelihood', 'subset_likelihood', 'repeat_likelihood','repeat_start', 'repeat_end', 'align_start', 'align_end', 'counts','freq','cluster_assignments',"outlier","peak_calling_method"]].to_csv(out + "_read_assignments.tsv", sep="\t", index=False, mode="a")
+        #     else:
+        #         assignments[['name','read_id','strand', 'align_score','neg_log_likelihood', 'subset_likelihood', 'repeat_likelihood','repeat_start', 'repeat_end', 'align_start', 'align_end', 'counts','freq','cluster_assignments',"outlier","peak_calling_method"]].to_csv(out + "_read_assignments.tsv", sep="\t", index=False, mode="a", header=None)
+    
         if flanking_like_filter:
-            if os.path.exists(out + "read_assignments.tsv") == False:
-                assignments[['name','read_id','strand', 'align_score','neg_log_likelihood', 'subset_likelihood', 'repeat_likelihood','repeat_start', 'repeat_end', 'align_start', 'align_end','counts', 'freq','cluster_assignments',"outlier","flanking_outlier","peak_calling_method"]].to_csv(out + "_read_assignments.tsv", sep="\t", index=False, mode="a")
-            else:
-                assignments[['name','read_id','strand', 'align_score','neg_log_likelihood', 'subset_likelihood', 'repeat_likelihood','repeat_start', 'repeat_end', 'align_start', 'align_end', 'counts','freq','cluster_assignments',"outlier","flanking_outlier","peak_calling_method"]].to_csv(out + "_read_assignments.tsv", sep="\t", index=False, mode="a", header=None)
+            assignments[['name','read_id','strand', 'align_score','neg_log_likelihood', 'subset_likelihood', 'repeat_likelihood','repeat_start', 'repeat_end', 'align_start', 'align_end','counts', 'freq','cluster_assignments',"outlier","flanking_outlier","peak_calling_method"]].to_csv(out + "_read_assignments.tsv", sep="\t", header=None,index=False, mode="a")
         else:
-            if os.path.exists(out + "read_assignments.tsv") == False:
-                assignments[['name','read_id','strand', 'align_score','neg_log_likelihood', 'subset_likelihood', 'repeat_likelihood','repeat_start', 'repeat_end', 'align_start', 'align_end', 'counts','freq','cluster_assignments',"outlier","peak_calling_method"]].to_csv(out + "_read_assignments.tsv", sep="\t", index=False, mode="a")
-            else:
-                assignments[['name','read_id','strand', 'align_score','neg_log_likelihood', 'subset_likelihood', 'repeat_likelihood','repeat_start', 'repeat_end', 'align_start', 'align_end', 'counts','freq','cluster_assignments',"outlier","peak_calling_method"]].to_csv(out + "_read_assignments.tsv", sep="\t", index=False, mode="a", header=None)
+            assignments[['name','read_id','strand', 'align_score','neg_log_likelihood', 'subset_likelihood', 'repeat_likelihood','repeat_start', 'repeat_end', 'align_start', 'align_end','counts', 'freq','cluster_assignments',"outlier","peak_calling_method"]].to_csv(out + "_read_assignments.tsv", sep="\t", index=False, mode="a", header=None)
     #add bandwidth column for kde calls
     curr_row['bandwidth'] = -1
     curr_row["peak_calling_method"] = decision
@@ -522,17 +533,21 @@ def call_peaks_stranded(row, out, out_count_name, plot_hists, max_peaks, filter_
         assignments["name"] = curr_kde.name
         assignments["peak_calling_method"] = decision
         #only output flanking outlier if applicable
-        if flanking_like_filter:
-            if os.path.exists(out +"_"+strand+ "_read_assignments.tsv") == False:
-                assignments[['name','read_id','counts','cluster_assignments',"outlier","flanking_outlier","peak_calling_method"]].to_csv(out + "_"+strand+ "_read_assignments.tsv", sep="\t", index=False, mode="a")
-            else:
-                assignments[['name','read_id','counts','cluster_assignments',"outlier","flanking_outlier","peak_calling_method"]].to_csv(out + "_"+strand+ "_read_assignments.tsv", sep="\t", index=False, mode="a", header=None)
-        else:
-            if os.path.exists(out +"_"+strand+ "_read_assignments.tsv") == False:
-                assignments[['name','read_id','counts','cluster_assignments',"outlier","peak_calling_method"]].to_csv(out + "_"+strand+ "_read_assignments.tsv", sep="\t", index=False, mode="a")
-            else:
-                assignments[['name','read_id','counts','cluster_assignments',"outlier","peak_calling_method"]].to_csv(out + "_"+strand+ "_read_assignments.tsv", sep="\t", index=False, mode="a", header=None)
+        # if flanking_like_filter:
+        #     if os.path.exists(out +"_"+strand+ "_read_assignments.tsv") == False:
+        #         assignments[['name','read_id','strand', 'align_score','neg_log_likelihood', 'subset_likelihood', 'repeat_likelihood','repeat_start', 'repeat_end', 'align_start', 'align_end','counts', 'freq','cluster_assignments',"outlier","flanking_outlier","peak_calling_method"]].to_csv(out + "_"+strand+ "_read_assignments.tsv", sep="\t", index=False, mode="a")
+        #     else:
+        #         assignments[['name','read_id','strand', 'align_score','neg_log_likelihood', 'subset_likelihood', 'repeat_likelihood','repeat_start', 'repeat_end', 'align_start', 'align_end','counts', 'freq','cluster_assignments',"outlier","flanking_outlier","peak_calling_method"]].to_csv(out + "_"+strand+ "_read_assignments.tsv", sep="\t", index=False, mode="a", header=None)
+        # else:
+        #     if os.path.exists(out +"_"+strand+ "_read_assignments.tsv") == False:
+        #         assignments[['name','read_id','strand', 'align_score','neg_log_likelihood', 'subset_likelihood', 'repeat_likelihood','repeat_start', 'repeat_end', 'align_start', 'align_end', 'counts','freq','cluster_assignments',"outlier","peak_calling_method"]].to_csv(out + "_"+strand+ "_read_assignments.tsv", sep="\t", index=False, mode="a")
+        #     else:
+        #         assignments[['name','read_id','strand', 'align_score','neg_log_likelihood', 'subset_likelihood', 'repeat_likelihood','repeat_start', 'repeat_end', 'align_start', 'align_end', 'counts','freq','cluster_assignments',"outlier","peak_calling_method"]].to_csv(out + "_"+strand+ "_read_assignments.tsv", sep="\t", index=False, mode="a", header=None)
         
+        if flanking_like_filter:
+            assignments[['name','read_id','strand', 'align_score','neg_log_likelihood', 'subset_likelihood', 'repeat_likelihood','repeat_start', 'repeat_end', 'align_start', 'align_end','counts', 'freq','cluster_assignments',"outlier","flanking_outlier","peak_calling_method"]].to_csv(out + "_"+strand+"_read_assignments.tsv", sep="\t", header=None,index=False, mode="a")
+        else:
+            assignments[['name','read_id','strand', 'align_score','neg_log_likelihood', 'subset_likelihood', 'repeat_likelihood','repeat_start', 'repeat_end', 'align_start', 'align_end','counts', 'freq','cluster_assignments',"outlier","peak_calling_method"]].to_csv(out + "_"+strand+"_read_assignments.tsv", sep="\t", index=False, mode="a", header=None)
         #account for differing column number for less than max_k peaks
         #print("unique assignements: ", assignments.assignment.unique())
         #print("max_k: ", max_k)
@@ -633,21 +648,26 @@ def call_peaks_stranded(row, out, out_count_name, plot_hists, max_peaks, filter_
                 curr_row["A"+ str(assignment+1)+":median_CI_allele_specific"] = median_CIs
     
         #write out cluster assignments to file
-        assignments = pd.merge(left = final_data2[['read_id','counts','cluster_assignments']],right=final_data[["read_id","counts","outlier","flanking_outlier"]], on = ["read_id","counts"], how="right")
+        #assignments = pd.merge(left = final_data2[['read_id','counts','cluster_assignments']],right=final_data[["read_id","counts","outlier","flanking_outlier"]], on = ["read_id","counts"], how="right")
+        assignments = pd.merge(left = final_data2[['read_id','counts','cluster_assignments']],right=final_data, on = ["read_id","counts"], how="right")
         assignments["name"] = gmm_stats.name
         assignments["peak_calling_method"] = decision
         assignments["cluster_assignments"] = assignments["cluster_assignments"]+1
         #assignments['assignment'] = final_data['cluster_assignments']
+        # if flanking_like_filter:
+        #     if os.path.exists(out +"_"+strand+ "_read_assignments.tsv") == False:
+        #         assignments[['name','read_id','strand', 'align_score','neg_log_likelihood', 'subset_likelihood', 'repeat_likelihood','repeat_start', 'repeat_end', 'align_start', 'align_end','counts', 'freq','cluster_assignments',"outlier","flanking_outlier","peak_calling_method"]].to_csv(out + "_"+strand+ "_read_assignments.tsv", sep="\t", index=False, mode="a")
+        #     else:
+        #         assignments[['name','read_id','strand', 'align_score','neg_log_likelihood', 'subset_likelihood', 'repeat_likelihood','repeat_start', 'repeat_end', 'align_start', 'align_end','counts', 'freq','cluster_assignments',"outlier","flanking_outlier","peak_calling_method"]].to_csv(out + "_"+strand+ "_read_assignments.tsv", sep="\t", index=False, mode="a", header=None)
+        # else:
+        #     if os.path.exists(out +"_"+strand+ "_read_assignments.tsv") == False:
+        #         assignments[['name','read_id','strand', 'align_score','neg_log_likelihood', 'subset_likelihood', 'repeat_likelihood','repeat_start', 'repeat_end', 'align_start', 'align_end', 'counts','freq','cluster_assignments',"outlier","peak_calling_method"]].to_csv(out + "_"+strand+ "_read_assignments.tsv", sep="\t", index=False, mode="a")
+        #     else:
+        #         assignments[['name','read_id','strand', 'align_score','neg_log_likelihood', 'subset_likelihood', 'repeat_likelihood','repeat_start', 'repeat_end', 'align_start', 'align_end', 'counts','freq','cluster_assignments',"outlier","peak_calling_method"]].to_csv(out + "_"+strand+ "_read_assignments.tsv", sep="\t", index=False, mode="a", header=None)
         if flanking_like_filter:
-            if os.path.exists(out +"_"+strand+ "_read_assignments.tsv") == False:
-                assignments[['name','read_id','counts','cluster_assignments',"outlier","flanking_outlier","peak_calling_method"]].to_csv(out +"_"+strand+ "_read_assignments.tsv", sep="\t", index=False, mode="a")
-            else:
-                assignments[['name','read_id','counts','cluster_assignments',"outlier","flanking_outlier","peak_calling_method"]].to_csv(out +"_"+strand+ "_read_assignments.tsv", sep="\t", index=False, mode="a", header=None)
+            assignments[['name','read_id','strand', 'align_score','neg_log_likelihood', 'subset_likelihood', 'repeat_likelihood','repeat_start', 'repeat_end', 'align_start', 'align_end','counts', 'freq','cluster_assignments',"outlier","flanking_outlier","peak_calling_method"]].to_csv(out + "_"+strand+"_read_assignments.tsv", sep="\t", header=None,index=False, mode="a")
         else:
-            if os.path.exists(out +"_"+strand+ "_read_assignments.tsv") == False:
-                assignments[['name','read_id','counts','cluster_assignments',"outlier","peak_calling_method"]].to_csv(out +"_"+strand+ "_read_assignments.tsv", sep="\t", index=False, mode="a")
-            else:
-                assignments[['name','read_id','counts','cluster_assignments',"outlier","peak_calling_method"]].to_csv(out +"_"+strand+ "_read_assignments.tsv", sep="\t", index=False, mode="a", header=None)
+            assignments[['name','read_id','strand', 'align_score','neg_log_likelihood', 'subset_likelihood', 'repeat_likelihood','repeat_start', 'repeat_end', 'align_start', 'align_end','counts', 'freq','cluster_assignments',"outlier","peak_calling_method"]].to_csv(out + "_"+strand+"_read_assignments.tsv", sep="\t", index=False, mode="a", header=None)
     #add bandwidth column for kde calls
     curr_row['bandwidth'] = -1
     curr_row["peak_calling_method"] = decision
@@ -864,6 +884,13 @@ def main():
 
     #default output
     if args.stranded_report == False:
+        #TODO initialize read assignment tsv
+        #Note: this will override the current read_assignments file if it exists
+        if args.flanking_like_filter:
+            pd.DataFrame(['name','read_id','strand', 'align_score','neg_log_likelihood', 'subset_likelihood', 'repeat_likelihood','repeat_start', 'repeat_end', 'align_start', 'align_end','counts', 'freq','cluster_assignments',"outlier","flanking_outlier","peak_calling_method"]).T.to_csv(args.out + "_read_assignments.tsv", sep="\t", index=False, header=None)
+        else:
+            pd.DataFrame(['name','read_id','strand', 'align_score','neg_log_likelihood', 'subset_likelihood', 'repeat_likelihood','repeat_start', 'repeat_end', 'align_start', 'align_end', 'counts','freq','cluster_assignments',"outlier","peak_calling_method"]).T.to_csv(args.out + "_read_assignments.tsv", sep="\t", index=False,header=None)
+
         geno_df = targets.apply(call_peaks, args=(args.out, out_count_name, args.output_plots,args.max_peaks,args.discard_outliers,args.filter_quantile,args.bootstrap, args.call_width, args.resample_size,args.allele_specific_plots,args.allele_specific_CIs, args.bandwidth,args.kernel,args.flanking_like_filter), axis=1)
         #call original allele call procedure
         #geno_df = targets.apply(ratio_gmm_stats,axis=1,args=(args.out,out_count_name, args.output_hist,args.max_peaks,args.discard_outliers, args.bootstrap, args.call_width, args.resample_size,args.allele_specific_plots,args.allele_specific_CIs,args.filter_quantile))
@@ -878,6 +905,15 @@ def main():
             print(geno_df)
             print("Results are not a DataFrame! Something went wrong...")
     else: #stranded output
+        #TODO initialize read assignment tsvs
+        if args.flanking_like_filter:
+            pd.DataFrame(['name','read_id','strand', 'align_score','neg_log_likelihood', 'subset_likelihood', 'repeat_likelihood','repeat_start', 'repeat_end', 'align_start', 'align_end','counts', 'freq','cluster_assignments',"outlier","flanking_outlier","peak_calling_method"]).T.to_csv(args.out + "_forward_read_assignments.tsv", sep="\t", index=False,header=None)
+            pd.DataFrame(['name','read_id','strand', 'align_score','neg_log_likelihood', 'subset_likelihood', 'repeat_likelihood','repeat_start', 'repeat_end', 'align_start', 'align_end','counts', 'freq','cluster_assignments',"outlier","flanking_outlier","peak_calling_method"]).T.to_csv(args.out + "_reverse_read_assignments.tsv", sep="\t", index=False,header=None)
+
+        else:
+            pd.DataFrame(['name','read_id','strand', 'align_score','neg_log_likelihood', 'subset_likelihood', 'repeat_likelihood','repeat_start', 'repeat_end', 'align_start', 'align_end', 'counts','freq','cluster_assignments',"outlier","peak_calling_method"]).T.to_csv(args.out + "_forward_read_assignments.tsv", sep="\t", index=False,header=None)
+            pd.DataFrame(['name','read_id','strand', 'align_score','neg_log_likelihood', 'subset_likelihood', 'repeat_likelihood','repeat_start', 'repeat_end', 'align_start', 'align_end', 'counts','freq','cluster_assignments',"outlier","peak_calling_method"]).T.to_csv(args.out + "_reverse_read_assignments.tsv", sep="\t", index=False,header=None)
+
         geno_forward_df = targets.apply(call_peaks_stranded, args=(args.out, out_count_name, args.output_plots,args.max_peaks,args.discard_outliers,args.filter_quantile,args.bootstrap, args.call_width, args.resample_size,args.allele_specific_plots,args.allele_specific_CIs, args.bandwidth,args.kernel,args.flanking_like_filter,"forward"), axis=1)
         geno_reverse_df = targets.apply(call_peaks_stranded, args=(args.out, out_count_name, args.output_plots,args.max_peaks,args.discard_outliers,args.filter_quantile,args.bootstrap, args.call_width, args.resample_size,args.allele_specific_plots,args.allele_specific_CIs, args.bandwidth,args.kernel,args.flanking_like_filter, "reverse"), axis=1)
         
