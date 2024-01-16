@@ -30,10 +30,8 @@ class Process_Read:
 
     def align_mappy(self):
         '''
-        This function is to replace align_blast if it is faster and as accurate.
-        it should also solve our intermediate file issue
+        This function aligns the prefixes and suffixes to the current read to assign it to the most likely target.
         '''
-        #TODO make sure this works, added case where user wants custom mappy parameters
         if self.k  is None and self.w is None: # default
             aligner = mappy.Aligner(seq=self.seq,preset=self.mode,best_n = 1) #only return the best alignment per target
         #adjusted k
@@ -70,9 +68,8 @@ class Process_Read:
                 suffix_dict["suffix_mapq"].append(hit.mapq)
                 suffix_dict["strand"].append(hit.strand)
                 suffix_dict["alignment_length"].append(hit.blen)
-        #try this instead of return statement, need to confirm this is valid
-        #print(prefix_dict)
-        #print(suffix_dict)
+
+        #record if no valid alignment found
         if len(prefix_dict['name']) < 1:
             self.prefix_df = False
         else:
@@ -82,7 +79,6 @@ class Process_Read:
         else:
             self.suffix_df = pd.DataFrame(suffix_dict)
         return
-        #return pd.DataFrame(prefix_dict), pd.DataFrame(suffix_dict)
     
     def keep_region(self, prefix_info, suffix_info):
         '''
@@ -90,8 +86,8 @@ class Process_Read:
 
         Parameters
         --------------------------------------------------------------------------------------------------
-        curr_targ: pandas Series
-            Series corresponding to a candidate target
+        prefix_info: pandas Series. Series contianing alignment info for the prefix
+        suffix_info: pandas Series. Series containing alignment info for the suffix
         
         Returns
         --------------------------------------------------------------------------------------------------
@@ -107,22 +103,19 @@ class Process_Read:
         else:
             return False
         
-    def get_align_info(self, row, prefix_info, suffix_info): #TODO I think we would need to make an alternative to this for softclips
+    def get_align_info(self, row, prefix_info, suffix_info):
         '''
         This function gets attributes of a given read given that a target has been identified
 
+        Parameters
+        ----------------------------------------------------------------------------------------------------
+        row: pandas Series. Row for current target.
+        prefix_info: pandas Series. Series contianing alignment info for the prefix
+        suffix_info: pandas Series. Series containing alignment info for the suffix
+
         Returns
         ----------------------------------------------------------------------------------------------------
-        strand: str
-            If valid, strand is the strand the alignment is on. If not valid, returns None
-        align_start: int
-            Integer indicating the start coordinate of the mappy alignment
-        align_end: int
-            Integer indicating the end coordinate of the mappy alignment
-        subset: str
-            The subsetted sequence of the given read. By default, subset will preserve 50bp flanking the predicted
-            repeat loci in the read to allow wiggle room for the model to identify the repeat elements as well as 
-            flanking sequence
+        info: dictionary. Dictionary of alignment and subset information for the current read
         '''
         #dictionary of info for current target
         info = {}
@@ -149,13 +142,6 @@ class Process_Read:
         info["prefix_mapq"] = prefix_info.prefix_mapq[0]
         info["suffix_mapq"] = suffix_info.suffix_mapq[0]
 
-        #print("prefix_align_length: ", info["prefix_align_length"])
-        #print("suffix_align_length: ", info["suffix_align_length"] )
-        #get subsetted sequence
-        #TODO figure out if 400 is sufficient for all or if this should be an input parameter. Less unique local regions need longer
-        #TODO I switched len(info["prefix"]) to info["prefix_align_length"] and info["suffix_align_length"]
-
-        #ADDED flag to use full read in viterbi because already relativly short reads and need to conserve information
         if self.use_full_seq:
             info["subset"] = self.seq
             #ADDED record subset coords so we can calculate repeat coordinates
@@ -163,7 +149,6 @@ class Process_Read:
             info["subset_end"] = len(self.seq) -1
             return info
 
-        # TODO update this to be compatible with whatever length flanking sequence encoded in the model --niche use case but may cause problems if we subset a sequence to be shorter than the intended model prefix or suffix
         if info["align_start"] + info["start_length"] - 400 < 0 and info["align_end"]-info["end_length"]+400 < len(self.seq):
             info["subset"] = self.seq[info["align_start"] + info["start_length"] - 50: info["align_end"]-info["end_length"]+400]
             info["subset_start"] = info["align_start"] + info["start_length"] - 50
@@ -174,14 +159,11 @@ class Process_Read:
             info["subset_start"] = info["align_start"] + info["start_length"] - 400
             info["subset_end"] = info["align_end"]-info["end_length"]+50 -1
         elif info["align_start"] + info["start_length"] - 400 < 0 and info["align_end"]-info["end_length"]+400 > len(self.seq):
-            #print("entered the case where 400 is too big")
             if info["align_start"] + info["start_length"] - 50 < 0 and info["align_end"]-info["end_length"]+50 > len(self.seq):
-                #print("entered the case where 5 is too big for both")
                 info["subset"] = self.seq[info["align_start"] : info["align_end"]]
                 info["subset_start"] = info["align_start"]
                 info["subset_end"] = info["align_end"]-1
             else:
-                #print("entered the case where 50 is good to go")
                 info["subset"] = self.seq[info["align_start"] + info["start_length"] - 50: info["align_end"]-info["end_length"]+50] #switch back to 50 if this doesnt help
                 info["subset_start"] = info["align_start"] + info["start_length"] - 50
                 info["subset_end"] = info["align_end"]-info["end_length"]+50 -1
@@ -189,9 +171,6 @@ class Process_Read:
             info["subset"] = self.seq[info["align_start"] + info["start_length"] - 400: info["align_end"]-info["end_length"]+400]
             info["subset_start"] = info["align_start"] + info["start_length"] - 400
             info["subset_end"] = info["align_end"]-info["end_length"]+400 -1
-        #print("read: ", self.read_id, ":" ,info["subset"])
-        #print("align start:", info["align_start"], " align_len: ", info["prefix_align_length"])
-        #print("align end:", info["align_end"], " align_len: ", info["suffix_align_length"])
         if len(info["subset"]) < 1:
             return #return nothing if there is no repeat in this sequence, spurious alignment
         return info
@@ -203,8 +182,7 @@ class Process_Read:
 
         Parameters
         -----------------------------------------------------------------------------------------------------
-        targets_df: pandas DataFrame
-            DataFrame of tandem repeat target loci to compare to alignment results
+        targets_df: pandas DataFrame. DataFrame of tandem repeat target loci to compare to alignment results
         '''
         #check if any alignemnts returned
         if isinstance(self.prefix_df, (bool)) or isinstance(self.suffix_df, (bool)): #no alignments
@@ -212,7 +190,7 @@ class Process_Read:
         #subset to only get targets that aligned according to mappy
         candidate_targets = targets_df[targets_df.name.isin(self.prefix_df.name)] #previously sub_targ
         #get the best alignments per target identified (previously sub_prefixes and sub_suffixes)
-        candidate_prefix_aligns = self.prefix_df.groupby('name').head(1).reset_index() # i need to check if this is doing what I think, I kinda wanna change these to dictionaries cause it would be easier to access
+        candidate_prefix_aligns = self.prefix_df.groupby('name').head(1).reset_index()
         candidate_suffix_aligns = self.suffix_df.groupby('name').head(1).reset_index()
         self.target_info = {}
         #filter candidates that aren't in a compatible orientation and save final candidates
@@ -220,13 +198,27 @@ class Process_Read:
             prefix_info =  candidate_prefix_aligns[candidate_prefix_aligns.name == row.name].reset_index()
             suffix_info = candidate_suffix_aligns[candidate_suffix_aligns.name == row.name].reset_index()
             #save valid regions' attributes
-            # FIXME this is where the bug is, never enters the if statement
             if self.keep_region(prefix_info, suffix_info):
                 self.target_info[row.name] = self.get_align_info(row, prefix_info, suffix_info)
 
     def run_viterbi(self,hmm_file,rev_hmm_file,hidden_states,rev_states,out,build_pre, prefix_idx,output_labelled_seqs):
         '''
         This function runs viterbi on the current read across all identified targets.
+
+        Parameters
+        ----------------------------------------------------------------------------------------------------
+        hmm_file: str. Suffix for model file for Viterbi.
+        rev_hmm_file: str. Suffix for reverse model file for Viterbi.
+        hidden_states: str. Suffix for hidden_states file.
+        rev_states: str. Suffix reverse hidden_states file.
+        out: str. Output prefix
+        build_pre: str. Prefix for all model files
+        prefix_idx: int. Offset for prefix states
+        output_labelled_seqs: bool. Output labelled read sequence
+
+        Returns
+        ----------------------------------------------------------------------------------------------------
+        bool for if the run was successful
         '''
         #loop across all identified targets
         #if no targets, return
@@ -247,24 +239,17 @@ class Process_Read:
                 curr_states = curr_hidden_states_rev_file.readline().split(".")
                 curr_hidden_states_rev_file.close()
             #convert seqeunce to numeric so it is compatible with the C code
-            #print("subset in run_vit: ", self.target_info[name]["subset"].upper())
             numeric_seq = str(seq2int(self.target_info[name]["subset"].upper()))
             T = str(len(self.target_info[name]["subset"]))
             repeat_len = len(self.target_info[name]["repeat"])
             repeat_len_str = str(repeat_len)
             prefix_idx_str = str(3*prefix_idx + 1)
-            #command = ["./testvit",curr_hmm,T,numeric_seq, repeat_len_str, prefix_idx_str]
             test_hmm_cython_path = files('c_files').joinpath('test_hmm_cython.py')
             command = ['python',test_hmm_cython_path,curr_hmm,T,numeric_seq, repeat_len_str, prefix_idx_str]
             #run viterbi on current read
-            #result = run(command, stdout=PIPE,universal_newlines=True,bufsize=1)
             result = run(command, universal_newlines=True,capture_output=True, text=True)
-            #print(result.stderr)
             vit_out = result.stdout
 
-            #FIXME there is an error in here that is preventing it from returning
-
-            #do I want to include everything I did before in this method?? I will start with it here and assume the
             #methods are either static in this class or will be imported by name
             labeled_seq, pointers,MLE = label_states(vit_out, curr_states)
             likelihood, sub_labels,repeats,context, final_repeat_like, repeat_start, repeat_end = calc_likelihood(vit_out, pointers,labeled_seq, curr_states, self.target_info[name]["subset"], self.target_info[name]["subset_start"],self.target_info[name]["subset_end"])
@@ -273,7 +258,6 @@ class Process_Read:
             label_file.write(self.read_id + "\t" +".".join(labeled_seq)+"\n")
             label_file.close()
             count = count_repeats(labeled_seq,pointers,repeat_len,self.target_info[name]["subset"])
-            #print("read: ", self.read_id," passed label")
             score = self.target_info[name]["prefix_mapq"] + self.target_info[name]["suffix_mapq"]
 
             out_file = open(out+"_"+name+"_counts.txt","a")

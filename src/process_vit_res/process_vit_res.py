@@ -11,6 +11,7 @@ def label_states(vit_out, hidden_states):
     Returns:
         labeled_seq (list): a list corresponding to the input sequence in terms of hidden_states
         pointers (dict): a dictionary of "pointers" to the beginning of a state set (P,R, or S) so we can jump there later
+        MLE (float): Maximum likelihood estimate of the viterbi path
 
     '''
     labeled_seq = []
@@ -21,8 +22,6 @@ def label_states(vit_out, hidden_states):
     seq = vit_out.split("\n")[3]
     seq_list = seq.rstrip().split(" ")
     seq_list = [int(i) for i in seq_list]
-    #print("seq_list: ", seq_list)
-    # print("hidden_states: ", hidden_states)
 
     #build dictionary to convert from numeric to states
     conversion = {}
@@ -44,7 +43,6 @@ def label_states(vit_out, hidden_states):
             pointers["D"].append(i)
         if "I" in conversion[seq_list[i]]: #get indeces of all deletions
             pointers["I"].append(i)
-    #print(labeled_seq)
     return labeled_seq, pointers,MLE
 
 
@@ -58,12 +56,17 @@ def calc_likelihood(vit_out, pointers, labeled_seq,hidden_states, read,subset_st
         labeled_seq (str): labeled state seqeunce corresponding to viterbi output
         hidden_states (text file): text file of "." delimited states in correct order to label with
         read (str): raw read sequence
+        subset_start (int): integer indicating subset start position in original read
+        subset_end (int): integer indeicating subset end position in original read
 
     Returns:
         final (float): final likelihood corresponding to prefix --> suffix viterbi path
         final_labels(str): seqeunce labels for prefix --> suffix, "-" delimited
         repeats (str): sequence including deletion labels corresponding to only the target repeat in the seqeunce
         context (str): sequence including deletion labels corresponding to the path through prefix-->suffix
+        final_repeat_like (float): likelihood of the tandem repeat sequence
+        repeat_start (int): repeat start position relative to the original read
+        repeat_end (int): repeat end position relative to the original read
 
     '''
     #we can calculate the likelihood using the labeled sequence
@@ -81,15 +84,15 @@ def calc_likelihood(vit_out, pointers, labeled_seq,hidden_states, read,subset_st
     final = likelihood_list[Sn] - likelihood_list[Gn]
     final_repeat_like = likelihood_list[pointers["S"]-1] - likelihood_list[pointers["R"]-1] #likelihood of just the repeat
 
-    #ADDED 11/13 -- get repeat coordinates per read for downstream motif analysis
+    #get repeat coordinates per read for downstream motif analysis
     repeat_end =pointers["S"]-1 + subset_start
     repeat_start = pointers["R"] + subset_start
 
     final_labels = "-".join(labeled_seq[pointers["P"]:pointers["G2"]])
     num_pd = final_labels.count('PD')
     sub_read = read[pointers["P"]+num_pd:] #need to adjust for deletions but I think it maybe postion dependent
-    #get indeces in labelled with deletions
 
+    #get indeces in labelled with deletions
     deletions = [i - pointers["P"] for i in pointers["D"]] #convert to be relative to prefix start position
 
     #for each deletion, add a "-" in the raw sequence (this may not be the most efficient way to do this)
@@ -118,6 +121,7 @@ def count_repeats(labeled_seq, pointers,repeat_len,seq):
         labeled_seq (list): hidden state annotation of query sequence
         pointers (dict): dictionary of "pointers" to the first match to prefix, repeat, and suffix
         repeat_len (int): length of target repeat
+        seq (str): read sequence
 
     Returns:
         count (int): the number of repeats identified in the query sequence
@@ -125,7 +129,7 @@ def count_repeats(labeled_seq, pointers,repeat_len,seq):
     '''
     repeat_region = labeled_seq[pointers["R"]:pointers["S"]]
     adjusted_length = len(repeat_region)
-    #count insertions to account for
+    #count insertions to account for them in count
     for state in repeat_region:
         if state[1] == "I":
             adjusted_length -= 1
@@ -147,7 +151,7 @@ def print_labelled(read_id,strand,sub_labels,context,pointers,out):
     Returns:
     None, outputs new context sequence string to context file for given target
     '''
-    #print("context value: ",context)
+    # FIXME there is currently an edge case where if there is a deletion at the end of the repeat the sequence will continue to be labelled in white
     R_start = pointers["R"] - pointers["P"]
     R_end = pointers["S"] - pointers["P"]
     context_list = list(context)

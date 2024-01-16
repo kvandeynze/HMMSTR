@@ -22,14 +22,22 @@ class GMMStats:
     
     def plot_stats(self,counts_data,out, strand=None):
         '''
-        plot the histograms and median likelihood ratio line plots (hopefully with error bars)
+        plot the read support histograms
+
+        Args:
+        -----------------------------------------------------------------------------
+        counts_data (dataframe): dataframe continaing copy numbers from Viterbi output
+        out (str): output prefix
+        strand (str): strand we are plotting if applicable
+
+        Returns:
+        ----------------------------------------------------------------------------
+        None
 
         '''
-        #(1) unmodified histogram
         to_plot = counts_data[['counts','freq']].drop_duplicates().sort_values(by="counts")
         if to_plot.shape[0] == 0 or to_plot.shape[1] == 0:
             return
-        #(1) unmodified histogram
         sns.reset_orig()
         to_plot.plot.bar(x="counts",y="freq",figsize=(15,5),title= str(self.name), color="red", fontsize=7)
         plt.xlabel("Repeat count")
@@ -47,10 +55,18 @@ class GMMStats:
         Function to calculate summary stats for a single target
 
         Args:
-            out_count_name(str): output suffix for final result tsv
+        -----------------------------------------------------------------------------
+        out_count_name(str): output suffix for final result tsv
+        out (str): output prefix
+        plot_hists (bool): boolean indicating if histograms should be saved
+        filter_outliers (bool): boolean indicating if outliers should be included or not
+        filter_quantile (float): quantile that will be filtered if filter_outliers is true
+        flanking_like_filter (bool): boolean designating if reads should be filtered based on the likelihood of their flanking sequence
+        curr_strand (str): which strand we are performing operations on if applicable
 
         Returns:
-            counts_data(pandas dataframe): final calculations for given count file
+        -----------------------------------------------------------------------------
+        counts_data(pandas dataframe): final calculations for given count file
 
         '''
         #read output file
@@ -61,23 +77,37 @@ class GMMStats:
             counts_data = counts_data[counts_data.strand == curr_strand]
         
         counts_data['freq'] = counts_data.groupby(by='counts')['read_id'].transform('count')
-        #ADDED outlier filtering
+        #outlier filtering
         outliers = []
         flanking_outliers = []
         if filter_outliers:
             filtered, outliers = remove_outlier_IQR(counts_data.counts, filter_quantile)
-            #counts_data = counts_data[counts_data.counts.isin(filtered)]
         counts_data['outlier'] = np.where(counts_data.counts.isin(outliers),True , False)
         if flanking_like_filter:
             flanking_filtered, flanking_outliers = remove_flanking_outliers(counts_data)
         counts_data['flanking_outlier'] = np.where(counts_data.read_id.isin(flanking_outliers),True , False)
-        #testing out including plotting here, will need to add a flag
         if plot_hists:
             self.plot_stats(counts_data, out, curr_strand)
         return counts_data
 
     def call_peaks(self,X_orig,out, num_max_peaks, plot=True, save_allele_plots = True, strand=None):
-        # https://www.cbrinton.net/ECE20875-2020-Spring/W11/gmms_notebook.pdf
+        '''
+        Call peaks using a Gaussian mixture model. Code adapted from https://www.cbrinton.net/ECE20875-2020-Spring/W11/gmms_notebook.pdf
+
+        Args:
+        -----------------------------------------------------------------------------
+        X_orig (dataframe): counts matrix
+        out (str): output prefix
+        num_max_peaks (int): maximum number of peaks to call
+        plot (bool): boolean indicating if plots should be saved
+        save_allele_plots (bool): boolean indicating if allele specific plots should be saved
+        strand (str): which strand operations are performed on if applicable
+
+        Returns:
+        -----------------------------------------------------------------------------
+        curr_row (Series): series containing all stats for current target
+        cluster_assignments (Series): series containing read to cluster assignments
+        '''
         rng = np.random.RandomState(seed=1)
 
         #get transformed counts column to represent weighted frequencies
@@ -85,7 +115,6 @@ class GMMStats:
         X = X[["counts"]]
         if X.shape[0] < 2:
             curr_dict = {"name":self.name}
-            #revised
             #check if we have 1 read
             if X.shape[0] == 1:
                 try:
@@ -106,8 +135,6 @@ class GMMStats:
                 curr_mode = "A"+str(i)+":mode"
                 curr_sd = "A" + str(i) + ":SD"
                 curr_support = "A" + str(i) + ":supporting_reads"
-                #if curr_mean not in curr_dict.keys():
-                   # curr_dict[curr_mean] = 0 #don't include the mean since our distributions are left skewed, report median and mode
                 if curr_median not in curr_dict.keys():
                     curr_dict[curr_median] = 0
                 if curr_mode not in curr_dict.keys():
@@ -116,13 +143,10 @@ class GMMStats:
                     curr_dict[curr_sd] = 0
                 if curr_support not in curr_dict.keys():
                     curr_dict[curr_support] = 0
-        # for i in range(1,num_max_peaks+1):
-        #     curr_dict["A"+str(i)+":SD"] = final_peaks_SD[i-1]
             curr_dict["num_supporting_reads"] = len(X_orig.index)
             return pd.Series(curr_dict), cluster_assignments
-        # Fit models with 1-10 components
         #account for more components than samples
-        if X.shape[0] < num_max_peaks: # FIXME this may be an issue in consistency, maybe save original number for output
+        if X.shape[0] < num_max_peaks:
             num_max_peaks = X.shape[0]
 
         k_arr = np.arange(num_max_peaks) + 1
@@ -131,11 +155,12 @@ class GMMStats:
         for k in k_arr
         ]
         dfs = [] #subsets of X corresponding to each peak
+
         # Plot function
         def plot_mixture(gmm, X, show_legend=True, ax=None, title=None, subplot=False,cluster=None):
             if plot:
                 plt.rcParams["figure.figsize"] = (10,6)
-                sns.set_style('whitegrid',{'grid.color': '#dcddde'}) # nice and clean grid
+                sns.set_style('whitegrid',{'grid.color': '#dcddde'}) 
                 if ax is None:
                     ax = plt.gca()
 
@@ -148,7 +173,7 @@ class GMMStats:
             responsibilities = gmm.predict_proba(x.reshape(-1, 1))
 
             pdf_individual = responsibilities * pdf[:, np.newaxis]
-            #print(pdf_individual.shape)
+
             #get the max of each pdf
             maxInColumns = np.amax(pdf_individual, axis=0)
 
@@ -174,9 +199,7 @@ class GMMStats:
                     ymin, ymax = ax.get_ylim()
                     ax.set_ylim(ymin, ymax)
                     ax.vlines(x = st.mode(np.array(X.counts), keepdims=True)[0][0],ymin=ymin, ymax=ymax,linewidth=2, color='r',linestyle="dashed", label="Mode")
-                    #ax.axvline(x = X.counts.mean(), linewidth=2, color='g', linestyle="dashed", label = "Mean")
                     ax.axvline(x = X.counts.median(), linewidth=2, color='purple',linestyle="dashed",label="Median")
-                    #print("mean", X.counts.mean(), " mode: ", st.mode(np.array(X.counts))[0][0], "median: ", X.counts.median())
                 if show_legend:
                     ax.legend()
                 if not subplot: #save full peaks plot
@@ -219,14 +242,7 @@ class GMMStats:
             fig.set_size_inches(15,7)
         gmm_best = models[np.argmin(AIC)]
         max_peaks, ranks_idx = plot_mixture(gmm_best, X, title=self.name +": Gaussian Mixture Model of Best Fit")
-        #print(max_peaks)
-        # if plot:
-        #     plt.title(self.name)
-        #     plt.savefig(out + self.name + "peaks.pdf",bbox_inches='tight')
-        #     plt.show()
-        #     plt.clf()
 
-        #ADDED 9/7/22 TO TEST CLUSTERING + NEW FITTING WITH SCIPY
         cluster_assignments = np.argmax(gmm_best.predict_proba(X), axis=1)
         for cluster in np.unique(cluster_assignments):
             dfs.append(X[np.where(cluster_assignments == cluster, True, False)])
@@ -238,12 +254,7 @@ class GMMStats:
             cluster_stats[i] = {}
             if save_allele_plots and plot:
                 test1, test2 = plot_mixture(gmm_best, cluster,title=self.name+": Model of Best Fit for Allele " + str(i+1), subplot=True,cluster=i)
-                #plt.title(self.name)
-                #plt.savefig(out + self.name + "allele_"+ str(i+1)+".pdf",bbox_inches='tight')
-                #plt.show()
-                #plt.clf()
             #add metrics to dictionary so they are outputted
-            #cluster_stats[i]['mean'] = cluster.counts.mean()
             cluster_stats[i]['median'] = cluster.counts.median()
             cluster_stats[i]['mode'] = st.mode(np.array(cluster),keepdims=True)[0][0][0]
             if math.isnan(cluster.counts.std()):
@@ -279,19 +290,30 @@ class GMMStats:
         curr_dict["num_supporting_reads"] = len(X_orig.index)
             
         curr_row = pd.Series(curr_dict)
-        # print(curr_row, "length: ", len(curr_row))
-        # print(cluster_assignments)
         return curr_row, cluster_assignments
     
     def bootstrap_gmm(self,curr_row,data, resample_size, CI_width, max_peaks, out):
-        #FIXME need to determine if I should only construct CIs from each allele separately instead of like how I am since if there is a large imbalance in supporting reads, the CIs will include both alleles by chance
-        #throw out 1 read coverage, this is something to assume will happen if bootstrapping
+        '''
+        Performs bootstrapping and constructs confidence intervals using GMM peakcalling
+
+        Args:
+        --------------------------------------------------------------------------------
+        curr_row (series): current row in the genotype dataframe to append CIs to
+        data (dataframe): counts dataframe to sample from
+        resample_size (int): number of times to resample during bootstraping
+        CI_width (float): width of confidience interval to calculate
+        max_peaks (int): maximum number of peaks to call in each bootstrap iteration
+        out (str): output prefix
+
+        Returns:
+        --------------------------------------------------------------------------------
+        curr_row (series): the original input row with bootstrap results included
+        '''
+        #throw out 1 read coverage to avoid skewed bootstrapping results
         filtered = throw_low_cov(data)
         call_lists = {}
         for i in range(1,max_peaks+1):
-            #call_lists["A"+str(i)+"_mean"]=[]
             call_lists["A"+str(i)+"_median"]=[]
-            #call_lists["A"+str(i)+"_mode"]=[]
 
         for i in range(resample_size):
             if resample_size > 100 and (i+1)%10 == 0:
@@ -306,24 +328,28 @@ class GMMStats:
             curr_row = self.call_peaks(curr_sample, out ,max_peaks, plot=False) 
             #add current call to lists
             for j in range(1,max_peaks+1):
-                #call_lists["A"+str(j)+"_mean"].append(curr_row[0]['H'+str(j)+":mean"])
                 call_lists["A"+str(j)+"_median"].append(curr_row[0]['A'+str(j)+":median"])
-                #call_lists["A"+str(j)+"_mode"].append(curr_row[0]['H'+str(j)+":mode"])
-        #mean_CIs = {}
-        median_CIs = {}
-        #mode_CIs = {}
         adjustment = float((1.0 - CI_width)/2)
         for j in range(1,max_peaks+1): #get confidence interval for each allele called
-            #curr_means = call_lists["A"+str(j)+"_mean"]
             curr_medians = call_lists["A"+str(j)+"_median"]
-            #curr_modes = call_lists["A"+str(j)+"_mode"]
-            #curr_row[0]["A"+str(j)+":mean_CI"] = (np.quantile(curr_means,adjustment),np.quantile(curr_means,1-adjustment))
             curr_row[0]["A"+str(j)+":median_CI"] = (np.quantile(curr_medians,adjustment),np.quantile(curr_medians,1-adjustment))
-            #curr_row[0]["A"+str(j)+":mode_CI"] = (np.quantile(curr_modes,adjustment),np.quantile(curr_modes,1-adjustment))
         return curr_row[0]
 
     def bootstrap_gmm_allele_specific(self,data, resample_size, CI_width, out):
-            #FIXME need to determine if I should only construct CIs from each allele separately instead of like how I am since if there is a large imbalance in supporting reads, the CIs will include both alleles by chance
+            '''
+            Performs bootstrapping and constructs confidence interval for single allele using GMM peakcalling
+
+            Args:
+            --------------------------------------------------------------------------------
+            data (dataframe): counts dataframe to sample from
+            resample_size (int): number of times to resample during bootstraping
+            CI_width (float): width of confidience interval to calculate
+            out (str): output prefix
+
+            Returns:
+            --------------------------------------------------------------------------------
+            median_CI (tuple): tuple containing the median confidence interval call for the current allele 
+            '''
             #throw out 1 read coverage, this is something to assume will happen if bootstrapping
             filtered = throw_low_cov(data)
             call_lists = {}
@@ -343,17 +369,8 @@ class GMMStats:
                 #call gmm with original freqs on this subset
                 curr_row = self.call_peaks(curr_sample, out ,1, plot=False) #single allele bootstrapping
                 #add current call to lists
-                #call_lists["mean"].append(curr_row[0]["H1:mean"])
                 call_lists["median"].append(curr_row[0]["A1:median"])
-                #call_lists["mode"].append(curr_row[0]["H1:mode"])
-            #mean_CIs = {}
-            median_CIs = {}
-            #mode_CIs = {}
             adjustment = float((1.0 - CI_width)/2)
-            #curr_means = call_lists["mean"]
             curr_medians = call_lists["median"]
-            #curr_modes = call_lists["mode"]
-            #mean_CI = (np.quantile(curr_means,adjustment),np.quantile(curr_means,1-adjustment))
             median_CI= (np.quantile(curr_medians,adjustment),np.quantile(curr_medians,1-adjustment))
-            #mode_CI = (np.quantile(curr_modes,adjustment),np.quantile(curr_modes,1-adjustment))
             return median_CI

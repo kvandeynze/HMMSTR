@@ -39,16 +39,22 @@ class KDE_cluster:
         Function to calculate summary stats for a single target
 
         Args:
-            out_count_name(str): output suffix for final result tsv
+        -----------------------------------------------------------------------------------------------
+            plot_hists (bool): boolean indicating if read support histograms should be saved
+            filter_outliers (bool): boolean indicating if outliers should be included in allele calls
+            filter_quantile (float): if filter_outliers is set, this quantile of repeat copy number will be filtered
+            flanking_like_filter (bool): if set, reads with excessively low likelihood in their flanking regions will be filtered
+            strand (str): which strand to operated on if applicable
 
         Returns:
+        -----------------------------------------------------------------------------------------------
             counts_data(pandas dataframe): final calculations for given count file
 
         '''
         #read output file
         counts_data = self.data
         counts_data['freq'] = counts_data.groupby(by='counts')['read_id'].transform('count')
-        #ADDED outlier filtering
+        #outlier filtering
         outliers = []
         flanking_outliers=[]
         if filter_outliers:
@@ -59,20 +65,27 @@ class KDE_cluster:
         if flanking_like_filter:
             flanking_filtered, flanking_outliers = remove_flanking_outliers(counts_data)
         counts_data['flanking_outlier'] = np.where(counts_data.read_id.isin(flanking_outliers),True , False)
-        #testing out including plotting here, will need to add a flag
         if plot_hists:
             self.plot_stats(counts_data, self.out, strand)
         return counts_data
     def plot_stats(self,counts_data,out, strand=None):
         '''
-        plot the histograms and median likelihood ratio line plots (hopefully with error bars)
+        plot the histograms
+
+        Args:
+        -----------------------------------------------------------------------------
+        counts_data (dataframe): dataframe continaing copy numbers from Viterbi output
+        out (str): output prefix
+        strand (str): strand we are plotting if applicable
+
+        Returns:
+        ----------------------------------------------------------------------------
+        None
 
         '''
-        #(1) unmodified histogram
         to_plot = counts_data[['counts','freq']].drop_duplicates().sort_values(by="counts")
         if to_plot.shape[0] == 0 or to_plot.shape[1] == 0:
             return
-        #(1) unmodified histogram
         sns.reset_orig()
         to_plot.plot.bar(x="counts",y="freq",figsize=(15,5),title= str(self.name), color="red", fontsize=7)
         plt.xlabel("Repeat count")
@@ -90,10 +103,8 @@ class KDE_cluster:
         This function uses kernal density estimation to resolve alleles. It is ideal when data is normally distributed
         and has a relatively small range or overlapping count distributions
 
-        Parameters
+        Args
         --------------------------------------------------------------------------------------------------------------
-        data: pandas Series
-            Series containing count data
         kernel: str
             String designating kernel to use for the kde
         bandwidth: float or str
@@ -102,6 +113,16 @@ class KDE_cluster:
             The maximum number of clusters to keep in outputs, all others are filtered by cluster size
         output_plots: bool
             True if density plot will be saved, False if not
+        subset: bool
+            if True, cluster a subset of the data
+        filter_quantile: float
+            qunatile to filter if filter outliers is set
+        allele_specific: bool
+            if True, plot allele specific plots
+        allele: str
+            allele to plot and cluster
+        strand: str
+            which strand to plot and cluster if applicable
 
         Returns
         -------------------------------------------------------------------------------------------------------------
@@ -111,6 +132,8 @@ class KDE_cluster:
             Dictionary containing the allele call from each cluster as well as the size and standard deviation within the cluster
         outliers: pandas Series
             Series of counts that are identified as outliers and were dicarded before clustering. Empty if filter_outliers is False
+        flanking_outliers: pandas Series
+            Series of reads to filter based on the likelihood of the viterbi path through the prefix and suffix
 
         '''
         #filter outliers if called for
@@ -130,20 +153,16 @@ class KDE_cluster:
         else:
             a = np.array(self.data.counts).reshape(-1,1)
         if subset is not None:
-            a = np.array(subset.counts).reshape(-1,1) #ADDED 080123, allow a subset of data to be passed for reclustering
-        #need to see what the difference between using the fit model and the scores are
-        #FIXME threw the error the 0.0 can't be raised to a negative power when computing bandwidth
+            a = np.array(subset.counts).reshape(-1,1) #allow a subset of data to be passed for reclustering
         try:#initial call
-            #print(a.shape)
-            kde = KernelDensity( bandwidth=bandwidth,kernel=kernel).fit(a) #bandwith 0.5 works for ALS example
+            kde = KernelDensity( bandwidth=bandwidth,kernel=kernel).fit(a)
 
-            #ADDED 080423 trying minimum bandwidth
+            #trying minimum bandwidth
             if kde.bandwidth_ < 0.5:
                 kde = KernelDensity( bandwidth=0.5,kernel=kernel).fit(a)
         except:
             if len(a) == 0:
                 clusters = -1
-                #print("data is empty, returning empty allele call for target: ", self.name)
                 allele_calls = {"A"+str(k)+":median":-1 for k in range(1,max_k+1)}
                 allele_calls.update({"A"+str(k)+":mode":-1 for k in range(1,max_k+1)})
                 allele_calls.update({"A"+str(k)+":SD":-1 for k in range(1,max_k+1)})
@@ -151,19 +170,14 @@ class KDE_cluster:
                 allele_calls["bandwidth"] = -1
                 return clusters,allele_calls , outliers
 
-            #print("an exception occurred!")
             print("Switching to a constant bandwidth=0.5")
             kde = KernelDensity( bandwidth=0.5,kernel=kernel).fit(a)
-        #s = linspace(min(a)-5,max(a)+5)
-        #s = linspace(min(a),max(a))
         s = linspace(min(a)-2,max(a)+2)
         e = kde.score_samples(s.reshape(-1,1))
         mi, ma = argrelextrema(e, np.less)[0], argrelextrema(e, np.greater)[0]
 
         #run and change bandwidth till # maxima matches or is less than max_k
         while len(mi)+1 > max_k:
-            #print(bandwidth)
-            #print(len(mi)+1)
             bandwidth = kde.bandwidth_ + 0.1
             kde = KernelDensity( bandwidth=bandwidth,kernel=kernel).fit(a)
             e = kde.score_samples(s.reshape(-1,1))
@@ -187,7 +201,7 @@ class KDE_cluster:
                 maxima["2"] = s[ma][1]
             else:
                 if isinstance(stat.mode(all_clusters["2"]), np.float64):
-                    maxima["2"] = stat.mode(all_clusters["2"]) #added, im not sure why this is an issue
+                    maxima["2"] = stat.mode(all_clusters["2"])
                 else:
                     maxima["2"] = stat.mode(all_clusters["2"])[0] #if multiple modes returned, pick the first
             sizes["2"] = len(a[a >= s[mi][0]])
@@ -208,32 +222,22 @@ class KDE_cluster:
         #sort sizes
         sizes_series_sorted = sizes_series.sort_values(ascending=False)
         #get max_k clusters by size
-        #print(sizes_series_sorted)
         k_clusters = list(sizes_series_sorted.head(max_k).index)
-        #print(k_clusters)
         clusters = {k: np.unique(all_clusters[k]) for k in k_clusters}
-        #FIXME error was thrown here saying that only arrays of size 1 can be cast to float, I'm not sure what case this is yet
         non_one_maxima = False
         for k in k_clusters:
-            #print(type(maxima[k]))
             if isinstance(maxima[k], np.float64) == False and len(maxima[k]) != 1:
-                #print(k_clusters)
                 non_one_maxima = True
-                #print("length of maxima array for cluster ", k, " is not 1, the array is: ",maxima[k])
         if non_one_maxima == False:
-            #FIXME need to change cluster names to be sequential, this would also be fixed by limiting clusters called by bandwidth
-            #allele_calls = {k+"_KDE_maxima": round(float(maxima[k])) for k in k_clusters}
             allele_calls = {}
             allele_calls.update({"A" +str(k)+":supporting_reads":sizes[k] for k in k_clusters})
             allele_calls.update({"A" +str(k)+":SD":np.std(all_clusters[k]) for k in k_clusters})
-            #updated 080123, added stats in case the maxima is weird from clustering outliers or a far-off allele
             allele_calls.update({"A" +str(k)+":median":np.median(all_clusters[k]) for k in k_clusters})
             allele_calls.update({"A" +str(k)+":mode":int(st.mode(np.array(all_clusters[k]),keepdims=True)[0][0]) for k in k_clusters}) #I dont know if this will be the same, for some reason my results from margits data dont line up with finding the mode
             
             allele_calls["bandwidth"] = kde.bandwidth_
         elif len(k_clusters) == 1:
             #this is the case when there is only 1 value detected thus it is the only allele that can be called
-            #allele_calls = {"1_KDE_maxima":a[0][0]}
             allele_calls = {}
             allele_calls.update({"A1:supporting_reads":sizes["1"]})
             allele_calls.update({"A1:SD":np.std(all_clusters["1"])})
@@ -241,7 +245,6 @@ class KDE_cluster:
             allele_calls.update({"A1:mode":int(st.mode(np.array(all_clusters["1"]),keepdims=True)[0][0])})
             allele_calls["bandwidth"] = kde.bandwidth_
         else:
-            #allele_calls = {k+"_KDE_maxima":-1 for k in k_clusters}
             allele_calls = {}
             allele_calls["bandwidth"] = -1
             allele_calls.update({"A"+str(k)+":SD":0 for k in k_clusters})
@@ -251,18 +254,15 @@ class KDE_cluster:
 
         if output_plots:
             if len(mi) == 0:
-                #print("first case")
                 try:
                     plt.hist(a, density=True, histtype='bar',  label='Data', bins=range(int(min(a)),int(max(a))+2),facecolor = '#9bc1cc', edgecolor='whitesmoke', linewidth=0.5, align="left")
                     plt.plot(s[:],np.exp(e[:]),color="black",lw=2,linestyle="-",label="Kernel Density Estimate")
                         
-                    #for k in k_clusters:
                     if len(s[ma] != 0):
                         plt.plot(s[ma], np.exp(e[ma]), 'bo',label="KDE Maxima")
                     
                 except:
                     print("Encounted an exception in homozygous plotting case (KDE)")
-                #plt.plot(s[ma], e[ma], 'go') #plot just the points
                 if allele_specific:
                     plt.title(self.name + " KDE: Allele " + allele)
                     ymin, ymax = plt.ylim()
@@ -286,7 +286,6 @@ class KDE_cluster:
                 plt.show()
                 plt.clf()
             elif len(mi) == 1:
-                #print("case 2")
                 try:
                     plt.hist(a, density=True, histtype='bar',  label='Data', bins=range(int(min(a)),int(max(a))+2),facecolor = '#9bc1cc', edgecolor='whitesmoke', linewidth=0.5, align="left")
                     plt.plot(s[:],np.exp(e[:]),color="black",lw=2,linestyle="-",label="Kernel Density Estimate")
@@ -320,7 +319,6 @@ class KDE_cluster:
             #dynamically print clusters
             else:
                 try:
-                    #print("case3")
                     plt.hist(a, density=True, histtype='bar',  label='Data', bins=range(int(min(a)),int(max(a))+2),facecolor = '#9bc1cc', edgecolor='whitesmoke', linewidth=0.5, align="left")
                     plt.plot(s[:],np.exp(e[:]),color="black",lw=2,linestyle="-",label="Kernel Density Estimate")
                     plt.plot(s[ma], np.exp(e[ma]), 'bo',label="KDE Maxima")
@@ -359,6 +357,10 @@ class KDE_cluster:
         ------------------------------------------------------------------
         clusters: dict
             Dictionary of counts assigned to each cluster
+        outliers: series
+            series containing all outliers identified
+        flanking_outliers: series
+            series containing all flanking sequence likelihood outliers
         
         Returns:
         ----------------------------------------------------------------------
@@ -373,17 +375,27 @@ class KDE_cluster:
         labels = pd.DataFrame()
         labels['counts'] = count_assignemnts.keys()
         labels['cluster_assignments'] = count_assignemnts.values()
-        # TODO figure out if we want this to be consistent with gmm assignment output or if this is fine since we label outliers
-        assignment_df = self.data.merge(labels, how = 'left', on = 'counts') #I changed this to not assign a cluster to reads that are outliers
+        assignment_df = self.data.merge(labels, how = 'left', on = 'counts')
         assignment_df['outlier'] = np.where(assignment_df.counts.isin(outliers),True , False)
         assignment_df['flanking_outlier'] = np.where(assignment_df.read_id.isin(flanking_outliers),True , False)
         return assignment_df
 
-    #add bootstrapping to KDE class
     def bootstrap_KDE(self,data, resample_size, CI_width, max_peaks, out):
-        #FIXME need to determine if I should only construct CIs from each allele separately instead of like how I am since if there is a large imbalance in supporting reads, the CIs will include both alleles by chance
-        #throw out 1 read coverage, this is something to assume will happen if bootstrapping
-        #data['freq']=data.groupby(by='counts')['read_id'].transform('count')
+        '''
+        Performs bootstrapping and constructs confidence intervals using GMM peakcalling
+
+        Args:
+        --------------------------------------------------------------------------------
+        data (dataframe): counts dataframe to sample from
+        resample_size (int): number of times to resample during bootstraping
+        CI_width (float): width of confidience interval to calculate
+        max_peaks (int): maximum number of peaks to call in each bootstrap iteration
+        out (str): output prefix
+
+        Returns:
+        --------------------------------------------------------------------------------
+        curr_row (series): the original input row with bootstrap results included
+        '''
         filtered = throw_low_cov(data)
         call_lists = {}
         for i in range(1,max_peaks+1):
@@ -408,7 +420,6 @@ class KDE_cluster:
                     call_lists["A"+str(j)+":median"].append(0)
                     allele_calls["A"+str(j)+":median"] = 0
                     continue
-                #call_lists["A"+str(j)+"_mean"].append(curr_row[0]['H'+str(j)+":mean"])
                 call_lists["A"+str(j)+":median"].append(allele_calls["A"+str(j)+":median"])
         #mean_CIs = {}
         median_CIs = {}

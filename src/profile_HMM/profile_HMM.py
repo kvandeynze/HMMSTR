@@ -46,12 +46,6 @@ class ProfileHMM:
     def get_states(self):
         '''
         Function to calculate the number of match states needed
-
-        Args:
-            prefix (str): prefix from reference genome to match to
-            repeat (str): repeat motif to match
-            suffix (str): suffix from reference to match to
-
         Returns:
             states (int): number of match states
 
@@ -65,13 +59,7 @@ class ProfileHMM:
         Function to initialize a Profile HMM structure
 
         Args:
-            alphabet (list): alphabet characters for the model
-            states (int): all positions in the alignments that are in match states
-            prefix (str): prefix from reference genome to match to
-            repeat (str): repeat motif to match
-            suffix (str): suffix from reference to match to
-            background (dictionary): alphabet x frequency dictionary of background frequencies
-            out (str): ouput prefix for HMM file
+            strand: which strand to build model with reference to
         Returns:
             None, writes HMM file in format needed by umdhmm-v1.02
 
@@ -129,9 +117,9 @@ class ProfileHMM:
             hidden_states.append('SM'+str(i))
         #initialize 2nd 'G' state
         hidden_states.append('G2')
-        #I am not sure if this is suppose to be included in the transition matrix or not but we're gonna try it
+
         hidden_states.append('E') #end node
-        #print(hidden_states)
+
         # Initialize all transitions to 0
         for item in hidden_states:
             for next_item in hidden_states:
@@ -143,8 +131,7 @@ class ProfileHMM:
 
         #need to test probabilities here
         I['G1'] = 1.0
-        #I['PD1'] = 0.02
-        #I['PM1'] = 0.08
+
         #initialize emission probabilities
         E = self.get_emission(E, prefix, repeat, suffix,repeat_probs)
         A = self.get_transitions(A, prefix, repeat, suffix)
@@ -162,8 +149,6 @@ class ProfileHMM:
             self.I = I
         #call with current A,E,I since then we don't have to change the call based on strand but we have them saved correctly
         self.write_HMM(hidden_states, A, E, I, out)
-        #print("forward E: ", self.E)
-        #instead of returning, add fields
 
         return   
     def get_emission(self,E, prefix, repeat, suffix,repeat_probs):
@@ -172,11 +157,10 @@ class ProfileHMM:
 
         Args:
             E (defaultdict): empty default dictionary to fill
-            alphabet (list): alphabet characters for the model
             prefix (str): prefix from reference genome to match to
             repeat (str): repeat motif to match
             suffix (str): suffix from reference to match to
-            background (dictionary): alphabet x frequency dictionary of background frequencies
+            repeat_probs (dictionary): custom repeat probability matrix from user input (if applicable)
         Returns:
             E (defaultdict): filled emissions matrix
 
@@ -192,7 +176,7 @@ class ProfileHMM:
         for i in range(1, len(prefix)+1):
             for bp in self.alphabet:
                 E['PD' + str(i)][bp] = 0.0 #deletion states don't emit a base
-                E['PI' + str(i)][bp] = self.background[bp] #might need to update this when I update background frequencies
+                E['PI' + str(i)][bp] = self.background[bp]
                 if prefix[i-1] == bp:
                     E['PM' + str(i)][bp] = self.emissions[bp][bp]#probability of match
                 elif bp == "":
@@ -205,12 +189,10 @@ class ProfileHMM:
         #if custom probabilities given, add dictionary to full emissions dictionary, else continue as usual with emission probabilities
         if repeat_probs is None:
             for i in range(1,len(repeat)+1):
-                #print(repeat)
                 for j,bp in enumerate(self.alphabet):
                     E['RD' + str(i)][bp] = 0.0 #deletion states don't emit a base
                     E['RI' + str(i)][bp] = self.background[bp] #might need to update this when I update background frequencies
 
-                    #added to allow for 'N' in input repeat motif ***currently broken***
                     if repeat[i-1] == 'N':
                         if bp in ['A','C','T','G']:
                             E['RM' + str(i)][bp] = 0.25 #set ptobaility to 0.25 for all bases since it can be any of them
@@ -222,7 +204,7 @@ class ProfileHMM:
                         E['RM' + str(i)][bp] = 0.0
                     else:
                         E['RM' + str(i)][bp] = self.emissions[repeat[i-1]][bp] #probability of mismatch error
-                E['RD' + str(i)][""] = 0.25 #try with background freqs
+                E['RD' + str(i)][""] = 0.25 #background freqs
         else: #load dictionary and proceed with all other state types as usual
             E.update(repeat_probs) #add ALL match state probs for the repeat region
             for i in range(1,len(repeat)+1):
@@ -354,9 +336,7 @@ class ProfileHMM:
                 A['SI'+str(i-1)]['SM'+str(i)] = self.transitions["P_im"]
         #border suffix transitions
         A['SM' + str(len(suffix))]['G2'] = 1.0
-        #A['SM' + str(len(suffix))]['E'] = 0.10
         A['SD' + str(len(suffix))]['G2'] = 1.0
-        #A['SD' + str(len(suffix))]['E'] = 0.10
         return A   
     def write_HMM(self, hidden_states, A, B, pi, out):
         '''

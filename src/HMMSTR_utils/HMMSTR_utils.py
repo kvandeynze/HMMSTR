@@ -1,7 +1,10 @@
 import pandas as pd
 import mappy
 import numpy as np
-def rev_comp(strand): #can refactor this to use dictionaries
+def rev_comp(strand):
+    '''
+    Get the reverse complement of a given sequence
+    '''
     comp = ""
     for i in range(0, len(strand)):
         next_base = strand[len(strand) - i - 1]
@@ -19,14 +22,16 @@ def rev_comp(strand): #can refactor this to use dictionaries
     return comp
 
 def seq2int(seq):
+  '''
+  Convert DNA sequence to integer representation for Viterbi algorithm
+  '''
   d = {'A': '1', 'T': '2', 'C': '3', 'G': '4'}
   seqInt = ' '.join(d[s] if s in d else s for s in seq.upper())
-  #print(seqInt)
   return seqInt
   
 def read_fasta(fileObject):
   '''
-  Generator function to read in reads
+  Generator function to read in reads from fasta
   '''
   header = ''
   seq = ''
@@ -53,7 +58,7 @@ def read_fasta(fileObject):
 
 def read_fastq(fileObject):
   '''
-  Generator function to read in reads
+  Generator function to read in reads from fastq
   '''
   header = ''
   seq = ''
@@ -85,6 +90,9 @@ def read_fastq(fileObject):
       yield header, seq, True
 
 def remove_outlier_IQR(df,quantile=0.25):
+    '''
+    Removes outlier repeat copy numbers from distribution
+    '''
     Q1=df.quantile(quantile)
     Q3=df.quantile(1-quantile)
     IQR=Q3-Q1
@@ -93,10 +101,16 @@ def remove_outlier_IQR(df,quantile=0.25):
     return df_final, outliers
 
 def throw_low_cov(df):
+    '''
+    Filters any copy number with less than one supporting read
+    '''
     filtered = df[df.freq > 1]
     return filtered
 
 def get_IQR(df,quantile=0.25):
+    '''
+    Calculates the inter quantile range of the supporting read distribution
+    '''
     Q1=df.quantile(quantile)
     Q3=df.quantile(1-quantile)
     IQR=Q3-Q1
@@ -126,11 +140,9 @@ def read_model_params(input_file, param_type):
     input_df = pd.read_csv(input_file, sep="\t",index_col=0)
     if param_type == 'repeat':
        #add blank row
-      #print(input_df)
       input_df.loc[len( pd.DataFrame(input_df).index)] = 0
       input_df.index = ['A','G','C','T','']
     param_dict = input_df.to_dict()
-    #print(param_dict)
    return param_dict
 
 def generate_input_sheet(coords_file, chrom_sizes_file, ref,flanking_length=200):
@@ -190,7 +202,6 @@ def remove_flanking_outliers(counts_data):
   outliers= counts_data[~(counts_data.read_id.isin(df_final.read_id))]
   return df_final, outliers.read_id
 
-#FIXME need to include CIs sorted by allele here
 def sort_alleles(curr_row, new_row, bootstrap, allele_specif_CIs): #this is only for diploid, need to translate to any allele number
     #establish an order of alleles based on median
     allele_med_cols = curr_row[curr_row.index.str.endswith("median")]
