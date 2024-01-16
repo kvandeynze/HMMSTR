@@ -1,14 +1,13 @@
 /*
-**      Author: Tapas Kanungo, kanungo@cfar.umd.edu
-**      Date:   15 December 1997
-**      File:   viterbi.c
-**      Purpose: Viterbi algorithm for computing the maximum likelihood
-**		state sequence and probablity of observing a sequence
-**		given the model.
-**      Organization: University of Maryland
-**
-**      $Id: viterbi.c,v 1.1 1999/05/06 05:25:37 kanungo Exp kanungo $
-*/
+ *  File: viterbi.c
+ *
+ *  viterbi step and hidden states labeling.
+ *
+ *  The HMM structure and some codes are borrowed and modified from Kanungo's
+ *  original HMM program.
+ *  Tapas Kanungo, "UMDHMM: Hidden Markov Model Toolkit," in "Extended Finite State Models of Language," A. Kornai (editor), Cambridge University Press, 1999. http://www.kanungo.com/software/software.html.
+ *
+ */
 
 #include <math.h>
 #include "hmm.h"
@@ -50,8 +49,6 @@ void Viterbi(HMM *phmm, int T, int *O, double **delta, int **psi, int **tracebac
 					val2 = delta[t][i]*(phmm->A[i][j]);
 					if (val2 > val){
 						val = val2;
-						//printf("val was changed to val2 i is: %d, j is: %d\n", i, j);
-						//printf("val2 was: %lf, val is now: %lf\n",val2,val);
 
 					}
 				}
@@ -62,8 +59,6 @@ void Viterbi(HMM *phmm, int T, int *O, double **delta, int **psi, int **tracebac
 				}
 				//added traceback code, we only want traceback to deletion nodes to happen here
 				if (maxval == val2 && val2 !=0) {//track if we chose a deletion as our max value
-					//printf("we're in the traceback if, i is: %d, j is: %d\n",i,j);
-					//printf("maxind was: %d, maxval is: %lf\n",maxvalind,maxval);
 					traceback_dir[t][j] = 1;
 				}
         else{
@@ -80,7 +75,6 @@ void Viterbi(HMM *phmm, int T, int *O, double **delta, int **psi, int **tracebac
 				delta[t][j] = regular;
 			}
 			psi[t][j] = maxvalind;
-		//	printf("traceback j: %d, t: %d, is: %d\n", j,t,traceback_dir[t][j]);
 		}
 	}
 
@@ -95,10 +89,6 @@ void Viterbi(HMM *phmm, int T, int *O, double **delta, int **psi, int **tracebac
 		}
 	}
 
-	/* 4. Path (state sequence) backtracking */
-
-	//for (t = T - 1; t >= 1; t--)
-		//q[t] = psi[t+1][q[t+1]];
 /* 4. Modified to use a linked list so we can include additional states in path */
 	*list = g_list_append(*list, GINT_TO_POINTER (q[T])); //head is equal to last state
 	t=T;
@@ -116,7 +106,6 @@ void Viterbi(HMM *phmm, int T, int *O, double **delta, int **psi, int **tracebac
 			*T_new+=1;
 		}
 	}
-	//printf("%d\n", g_list_length(*list));
 
 }
 void ViterbiLog(HMM *phmm, int T, int *O, double **delta, int **psi,int **traceback_dir,GList **list,GList **likelihoods_ints,GList **likelihoods_dec,int *T_new,
@@ -130,9 +119,8 @@ void ViterbiLog(HMM *phmm, int T, int *O, double **delta, int **psi,int **traceb
 				double  **biot;
 		int	RM1, RD1; // booleans for RDn case
 		int continue_update, stop_early, next_del, curr_del; // for RDn updating loop
-
 	/* 0. Preprocessing */
-  //this section pre-converts everything to log, I don't think I need to change anything
+  //this section pre-converts everything to log
 	for (i = 1; i <= phmm->N; i++)
 		phmm->pi[i] = log(phmm->pi[i]);
 	for (i = 1; i <= phmm->N; i++)
@@ -145,7 +133,6 @@ void ViterbiLog(HMM *phmm, int T, int *O, double **delta, int **psi,int **traceb
 		for (t = 1; t <= T; t++) {
 			biot[i][t] = log(phmm->B[i][O[t]]);
 		}
-	//printf("checking why this isn't working: %lf",log(phmm->B[11][blank_index]));
         /* 1. Initialization  */
 
         for (i = 1; i <= phmm->N; i++) {
@@ -162,20 +149,8 @@ void ViterbiLog(HMM *phmm, int T, int *O, double **delta, int **psi,int **traceb
                         maxvalind = 1;
 												val2 = -VITHUGE;
                         for (i = 1; i <= phmm->N; i++) {
-								//TODO, assess if there is a difference in forcing val2 being picked as the likelihood if coming from a deletion. IE are coming from a deletion and coming from another state type independent? 
-                                // val = delta[t-1][i] + (phmm->A[i][j]); //you can go into a deletion in this statement but NOT from another deletion. This only corresponds to transitions that consume an OBSERVED BASE.
-								// 								//check if we need to traceback to a deletion state
-								// 								if ((i-2)%3 == 0 && (j-5)==i){ //only allows for checking deltions to match not deletion to deletion, not added to traceback_dir when it doesnt enter this statement
-								// 									val2 = delta[t][i] + (phmm->A[i][j]);
-								// 									//printf("i is: %d, j is: %d, val is: %lf, val2 is: %lf\n",i,j,val,val2);
-								// 									if (val2 > val){
-								// 										//printf("we're in where i dont think were going\n");
-								// 										val = val2;
-
-								// 										}
-								// 									}
 								
-								if ((i-2)%3 == 0 && (i !=phmm->N -1)){ //i is a deletion index, check the same level. this will not account for RDn yet
+								if ((i-2)%3 == 0 && (i !=phmm->N -1)){ //i is a deletion index, check the same level.
 									if((j-5)==i || (j-3)==i || (j-1)==i){
 										val2 = delta[t][i] + (phmm->A[i][j]);
 										val=val2;
@@ -189,8 +164,7 @@ void ViterbiLog(HMM *phmm, int T, int *O, double **delta, int **psi,int **traceb
                                         maxvalind = i;
                                 }
 																if (maxval == val2 && val2 !=-VITHUGE) {//track if we chose a deletion as our max value
-																	//printf("we're in the traceback if, i is: %d, j is: %d\n",i,j);
-																	//printf("maxind was: %d, maxval is: %lf\n",maxvalind,maxval);
+
 																	traceback_dir[t][j] = 1;
 																}
 		        									else{
@@ -198,11 +172,9 @@ void ViterbiLog(HMM *phmm, int T, int *O, double **delta, int **psi,int **traceb
 															}
 															//end of added traceback code
 														}
-										//TODO reevaluate if this is working if what we do above doesnt just fix everything
 										deletion = maxval + log(phmm->B[j][blank_index]);
 										regular = maxval + biot[j][t];
 										if(deletion > regular){
-											//printf("deletion greater than regular at j: %d, t: %d, with a value: %lf\n", j,t,deletion);
 											delta[t][j] = deletion;
 										}
 										else{
@@ -212,12 +184,9 @@ void ViterbiLog(HMM *phmm, int T, int *O, double **delta, int **psi,int **traceb
 
                 }
 				//row t is filled, check for RDn being a better path retroactively
-				//prefix_idx=91; // index of last prefix, 3*prefix length + 1
+				// index of last prefix, 3*prefix length + 1
 				continue_update = 1;
 				stop_early = 0;
-				// if (psi[t][7+3*(repeat_len-1)+1] == (7+3*(repeat_len-1)+1-3)){ //if RDn tracesback to RD(n-1), signal to stop early to avoid infinite recursion
-				// 	stop_early = 1;
-				// }
 				//same as above but find the earliest deletion in RDn's path so we can stop before then, we don't want it to come all the way around and it shouldn't
 				curr_del = prefix_idx+3*(repeat_len-1)+1;
 				next_del = prefix_idx+3*(repeat_len-1)+1-3;
@@ -231,11 +200,12 @@ void ViterbiLog(HMM *phmm, int T, int *O, double **delta, int **psi,int **traceb
 					next_del = curr_del - 3; // check next deletion
 				}
 				//check RM1, if RM1 is more likely from RDn than what it currently is, change the value (subtract out the emission when comparing the transition). No downstream affects because no value on level t is dependent on it
-				if((delta[t][prefix_idx+3*(repeat_len-1)+1] + (phmm->A[prefix_idx+3*(repeat_len-1)+1][10])) > (delta[t][10] - biot[10][t])){
+				//if((delta[t][prefix_idx+3*(repeat_len-1)+1] + (phmm->A[prefix_idx+3*(repeat_len-1)+1][10])) > (delta[t][10] - biot[10][t])){ // UPDATE 1/16/24 change 10 to prefix_idx + 3 = RM1
+				if((delta[t][prefix_idx+3*(repeat_len-1)+1] + (phmm->A[prefix_idx+3*(repeat_len-1)+1][prefix_idx + 3])) > (delta[t][prefix_idx + 3] - biot[prefix_idx + 3][t])){	
 					//transitioning from RDn is better than previous recorded transition for RM1
-					delta[t][10] = delta[t][prefix_idx+3*(repeat_len-1)+1] + (phmm->A[prefix_idx+3*(repeat_len-1)+1][10]) + biot[10][t]; //update delta
-					psi[t][10] = prefix_idx+3*(repeat_len-1)+1; //update traceback to RDn
-					traceback_dir[t][10] = 1; //update to indicate coming from a deletion
+					delta[t][prefix_idx + 3] = delta[t][prefix_idx+3*(repeat_len-1)+1] + (phmm->A[prefix_idx+3*(repeat_len-1)+1][prefix_idx + 3]) + biot[prefix_idx + 3][t]; //update delta
+					psi[t][prefix_idx + 3] = prefix_idx+3*(repeat_len-1)+1; //update traceback to RDn
+					traceback_dir[t][prefix_idx + 3] = 1; //update to indicate coming from a deletion
 				}
 				//check RD1 --> more complicated. If coming from RDn is more probabe than current path to RD1, change the value and all affected values UP TO RDn
 				// We cannot allow this to also change RDn because it will cause an infinite loop. Also it makes no sense to do this because it would essentially be saying the whole repeat was deleted
@@ -247,12 +217,12 @@ void ViterbiLog(HMM *phmm, int T, int *O, double **delta, int **psi,int **traceb
 				if (repeat_len == 1 || repeat_len == 2){
 					continue;
 				}
-				//check RD1
-				if ((delta[t][prefix_idx+3*(repeat_len-1)+1] + phmm->A[prefix_idx+3*(repeat_len-1)+1][8]) > (delta[t][8] - log(phmm->B[8][blank_index]))){
+				//check RD1 -- updated from 8 to prefix_idx + 1
+				if ((delta[t][prefix_idx+3*(repeat_len-1)+1] + phmm->A[prefix_idx+3*(repeat_len-1)+1][prefix_idx + 1]) > (delta[t][prefix_idx + 1] - log(phmm->B[prefix_idx + 1][blank_index]))){
 					//update RD1
-					delta[t][8] = delta[t][prefix_idx+3*(repeat_len-1)+1] + phmm->A[prefix_idx+3*(repeat_len-1)+1][8] + log(phmm->B[8][blank_index]);
-					psi[t][8] = prefix_idx+3*(repeat_len-1)+1;
-					traceback_dir[t][8] = 1;
+					delta[t][prefix_idx + 1] = delta[t][prefix_idx+3*(repeat_len-1)+1] + phmm->A[prefix_idx+3*(repeat_len-1)+1][prefix_idx + 1] + log(phmm->B[prefix_idx + 1][blank_index]);
+					psi[t][prefix_idx + 1] = prefix_idx+3*(repeat_len-1)+1;
+					traceback_dir[t][prefix_idx + 1] = 1;
 
 					// update related paths
 					l = prefix_idx + 1; //current deletion index
