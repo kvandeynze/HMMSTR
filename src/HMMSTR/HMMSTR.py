@@ -277,6 +277,8 @@ def call_peaks(row, out, out_count_name, plot_hists, max_peaks, filter_outliers=
                 allele_calls["A"+str(i+j)+":mode"] = 0
                 allele_calls["A"+str(i+j)+":supporting_reads"] = 0
                 allele_calls["A"+str(i+j)+":SD"] = 0
+                if allele_specif_CIs:
+                    allele_calls["A"+str(i+j)+":median_CI_allele_specific"] = (0,0)
         allele_calls["name"] = curr_kde.name
         allele_calls_series = pd.Series(allele_calls)
         #bootstrap
@@ -284,7 +286,7 @@ def call_peaks(row, out, out_count_name, plot_hists, max_peaks, filter_outliers=
         if bootstrap:
             if clusters != -1:
                 print("Starting bootstrap...")
-                median_CIs = curr_kde.bootstrap_KDE(assignments, resample_size, CI_width, max_peaks, out)
+                median_CIs = curr_kde.bootstrap_KDE(assignments[assignments.outlier == False][assignments.flanking_outlier == False], resample_size, CI_width, max_peaks, out)
                 allele_calls_series = pd.concat([allele_calls_series,pd.Series(median_CIs)])
         if allele_specif_CIs: 
             for assignment in assignments.cluster_assignments.unique():
@@ -321,6 +323,8 @@ def call_peaks(row, out, out_count_name, plot_hists, max_peaks, filter_outliers=
                 curr_mode = "A"+str(i)+":mode"
                 curr_sd = "A" + str(i) + ":SD"
                 curr_support = "A" + str(i) + ":supporting_reads"
+                curr_allele_spec = "A"+ str(i)+":median_CI_allele_specific"
+                curr_boot = "A"+str(i)+":median_CI"
                 if curr_median not in curr_dict.keys():
                     curr_dict[curr_median] = 0
                 if curr_mode not in curr_dict.keys():
@@ -329,10 +333,10 @@ def call_peaks(row, out, out_count_name, plot_hists, max_peaks, filter_outliers=
                     curr_dict[curr_sd] = 0
                 if curr_support not in curr_dict.keys():
                     curr_dict[curr_support] = 0
-                if bootstrap:
-                    curr_dict["A"+str(i)+":median_CI"] = (0,0)
-                if allele_specif_CIs:
-                    curr_dict["A"+ str(i+1)+":median_CI_allele_specific"] = (0,0)
+                if bootstrap and curr_boot not in curr_dict.keys():
+                    curr_dict[curr_boot] = (0,0)
+                if allele_specif_CIs and curr_allele_spec not in curr_dict.keys():
+                    curr_dict[curr_allele_spec] = (0,0)
                 curr_dict["num_supporting_reads"] = 0
             
             return pd.Series(curr_dict)
@@ -355,7 +359,12 @@ def call_peaks(row, out, out_count_name, plot_hists, max_peaks, filter_outliers=
                 print("Starting allele-specific bootstrap...")
                 median_CIs = gmm_stats.bootstrap_gmm_allele_specific(final_data2[final_data2.cluster_assignments == assignment],resample_size,CI_width,out)
                 curr_row["A"+ str(assignment+1)+":median_CI_allele_specific"] = median_CIs
-    
+            #check if we have a value for every column in max_peaks
+            if len(final_data2['cluster_assignments'].unique()) < max_peaks:
+                for i in range(max_peaks - len(final_data2['cluster_assignments'].unique())):
+                    j = len(final_data2['cluster_assignments'].unique())+1
+                    curr_row["A"+str(i+j)+":median_CI_allele_specific"] = (0,0)
+
         #write out cluster assignments to file
         assignments = pd.merge(left = final_data2[['read_id','counts','cluster_assignments']],right=final_data, on = ["read_id","counts"], how="right")
         assignments["name"] = gmm_stats.name
@@ -450,6 +459,8 @@ def call_peaks_stranded(row, out, out_count_name, plot_hists, max_peaks, filter_
                 allele_calls["A"+str(i+len(assignments[assignments.outlier == False].cluster_assignments.unique())+1)+":mode"] = 0
                 allele_calls["A"+str(i+len(assignments[assignments.outlier == False].cluster_assignments.unique())+1)+":supporting_reads"] = 0
                 allele_calls["A"+str(i+len(assignments[assignments.outlier == False].cluster_assignments.unique())+1)+":SD"] = 0
+                if allele_specif_CIs:
+                    allele_calls["A"+str(i+len(assignments[assignments.outlier == False].cluster_assignments.unique())+1)+":median_CI_allele_specific"] = (0,0)
         allele_calls["name"] = curr_kde.name
         allele_calls["strand"] = strand
         allele_calls_series = pd.Series(allele_calls)
@@ -459,15 +470,13 @@ def call_peaks_stranded(row, out, out_count_name, plot_hists, max_peaks, filter_
         if bootstrap:
             if clusters != -1:
                 print("Starting bootstrap...")
-                #TODO I don't think I should be subsetting this beforehand since I call clustering from the kde object which has the fields for filtering outliers, change this once original test is done
-                median_CIs = curr_kde.bootstrap_KDE(assignments, resample_size, CI_width, max_peaks, out)
+                median_CIs = curr_kde.bootstrap_KDE(assignments[assignments.outlier == False], resample_size, CI_width, max_peaks, out)
                 allele_calls_series = pd.concat([allele_calls_series,pd.Series(median_CIs)])
         if allele_specif_CIs: 
             for assignment in assignments.cluster_assignments.unique():
                 if clusters == -1:
                     break
                 if pd.isna(assignment):
-                    #print("hi")
                     continue
                 print("Starting allele-specific bootstrap...")
                 allele_calls_series["A"+ str(assignment)+":median_CI_allele_specific"] = curr_kde.bootstrap_KDE_allele_specific(assignments[assignments.cluster_assignments == assignment], resample_size, CI_width, out)
@@ -497,6 +506,9 @@ def call_peaks_stranded(row, out, out_count_name, plot_hists, max_peaks, filter_
                 curr_mode = "A"+str(i)+":mode"
                 curr_sd = "A" + str(i) + ":SD"
                 curr_support = "A" + str(i) + ":supporting_reads"
+                #TODO add column names for alleles here, right now all of these are being set to (0,0) when they shouldn't be, somehow they are being reset to nan
+                curr_allele_spec = "A"+ str(i)+":median_CI_allele_specific"
+                curr_boot = "A"+str(i)+":median_CI"
                 if curr_median not in curr_dict.keys():
                     curr_dict[curr_median] = 0
                 if curr_mode not in curr_dict.keys():
@@ -505,10 +517,10 @@ def call_peaks_stranded(row, out, out_count_name, plot_hists, max_peaks, filter_
                     curr_dict[curr_sd] = 0
                 if curr_support not in curr_dict.keys():
                     curr_dict[curr_support] = 0
-                if bootstrap:
-                    curr_dict["A"+str(i)+":median_CI"] = (0,0)
-                if allele_specif_CIs:
-                    curr_dict["A"+ str(i+1)+":median_CI_allele_specific"] = (0,0)
+                if bootstrap and curr_boot not in curr_dict.keys():
+                    curr_dict[curr_boot] = (0,0)
+                if allele_specif_CIs and curr_allele_spec not in curr_dict.keys():
+                    curr_dict[curr_allele_spec] = (0,0)
                 curr_dict["num_supporting_reads"] = 0
             curr_dict["strand"] = strand
             return pd.Series(curr_dict)
@@ -532,6 +544,10 @@ def call_peaks_stranded(row, out, out_count_name, plot_hists, max_peaks, filter_
             for assignment in final_data2['cluster_assignments'].unique():
                 median_CIs = gmm_stats.bootstrap_gmm_allele_specific(final_data2[final_data2.cluster_assignments == assignment],resample_size,CI_width,out)
                 curr_row["A"+ str(assignment+1)+":median_CI_allele_specific"] = median_CIs
+            if len(final_data2['cluster_assignments'].unique()) < max_peaks:
+                for i in range(max_peaks - len(final_data2['cluster_assignments'].unique())):
+                    j = len(final_data2['cluster_assignments'].unique())+1
+                    curr_row["A"+str(i+j)+":median_CI_allele_specific"] = (0,0)
     
         #write out cluster assignments to file
         assignments = pd.merge(left = final_data2[['read_id','counts','cluster_assignments']],right=final_data, on = ["read_id","counts"], how="right")
@@ -627,7 +643,6 @@ def main():
         for key,val in vars(args).items():
             print(key,":",val)
             outfile.write(key + ":"+ str(val)+"\n")
-    #TODO output file with parameters for this run but output in input format so run can be replicated in the future -- not sure if this should just be an option, outputtin 2 of these seems silly
     write_input_command(args)
 
     if args.output_plots:

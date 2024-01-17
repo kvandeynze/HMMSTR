@@ -216,7 +216,7 @@ def sort_alleles(curr_row, new_row, bootstrap, allele_specif_CIs): #this is only
         new_row["A"+str(i+1)+":SD"] = curr_allele_cols[curr_allele + ":SD"]
         new_row["A"+str(i+1)+":supporting_reads"] = curr_allele_cols[curr_allele + ":supporting_reads"]
         if bootstrap:
-          new_row["A"+str(i+1)+":median_CI"] = curr_allele_cols[curr_allele + ":median_CI"]
+          new_row["A"+str(i+1)+":median_CI"] = curr_allele_cols[curr_allele + ":median_CI"] 
         if allele_specif_CIs:
           curr_CI = curr_allele_cols[curr_allele + ":median_CI_allele_specific"][0] #tuple, take lower bound and find closest allele assignment
           closest_allele_bootstrap = allele_med_cols_order[(allele_med_cols_order-curr_CI).abs().argsort()].index[0].split(":")[0]

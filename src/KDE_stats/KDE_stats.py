@@ -399,9 +399,7 @@ class KDE_cluster:
         filtered = throw_low_cov(data)
         call_lists = {}
         for i in range(1,max_peaks+1):
-            #call_lists["A"+str(i)+"_mean"]=[]
             call_lists["A"+str(i)+":median"]=[]
-            #call_lists["A"+str(i)+"_mode"]=[]
 
         for i in range(resample_size):
             if resample_size > 100 and (i+1)%10 == 0:
@@ -421,26 +419,18 @@ class KDE_cluster:
                     allele_calls["A"+str(j)+":median"] = 0
                     continue
                 call_lists["A"+str(j)+":median"].append(allele_calls["A"+str(j)+":median"])
-        #mean_CIs = {}
         median_CIs = {}
-        #mode_CIs = {}
         adjustment = float((1.0 - CI_width)/2)
         for j in range(1,max_peaks+1): #get confidence interval for each allele called
-            #curr_means = call_lists["A"+str(j)+"_mean"]
             curr_medians = call_lists["A"+str(j)+":median"]
-            #curr_modes = call_lists["A"+str(j)+"_mode"]
-            #curr_row[0]["A"+str(j)+":mean_CI"] = (np.quantile(curr_means,adjustment),np.quantile(curr_means,1-adjustment))
             median_CIs["A"+str(j)+":median_CI"] = (np.quantile(curr_medians,adjustment),np.quantile(curr_medians,1-adjustment))
-            #curr_row[0]["A"+str(j)+":mode_CI"] = (np.quantile(curr_modes,adjustment),np.quantile(curr_modes,1-adjustment))
         return median_CIs
 
     def bootstrap_KDE_allele_specific(self,data, resample_size, CI_width, out):
             #throw out 1 read coverage, this is something to assume will happen if bootstrapping
             filtered = throw_low_cov(data)
             call_lists = {}
-            #call_lists["mean"]=[]
             call_lists["median"]=[]
-            #call_lists["mode"]=[]
     
             for i in range(resample_size):
                 if resample_size > 100 and (i+1)%10 == 0:
@@ -454,17 +444,8 @@ class KDE_cluster:
                 #call gmm with original freqs on this subset
                 clusters, allele_calls, outliers, flanking_outliers = self.call_clusters(kernel="gaussian", bandwidth = 'scott', max_k = 1, output_plots = False, subset=curr_sample, filter_quantile=0.25)  #single allele bootstrapping
                 #add current call to lists
-                #call_lists["mean"].append(curr_row[0]["A1:mean"])
                 call_lists["median"].append(allele_calls["A1:median"])
-                #call_lists["mode"].append(curr_row[0]["H1:mode"])
-            #mean_CIs = {}
-            median_CIs = {}
-            #mode_CIs = {}
             adjustment = float((1.0 - CI_width)/2)
-            #curr_means = call_lists["mean"]
             curr_medians = call_lists["median"]
-            #curr_modes = call_lists["mode"]
-            #mean_CI = (np.quantile(curr_means,adjustment),np.quantile(curr_means,1-adjustment))
             median_CI= (np.quantile(curr_medians,adjustment),np.quantile(curr_medians,1-adjustment))
-            #mode_CI = (np.quantile(curr_modes,adjustment),np.quantile(curr_modes,1-adjustment))
             return median_CI
