@@ -231,8 +231,10 @@ If there is sufficient coverage across all alleles in the run, this is not an is
    ``` 
    hmmstr targets_tsv [Input tsv] [Output prefix] [Infile] --mapq_cutoff 0 --mode sr --k 6 --w 2 --use_full_read --flanking_size 50
    ```
-4. Can I run HMMSTR on whole genome sequencing data? 
-5. How can I call copy number estimates from soft clipped reads?
-6. Can I use HMMSTR to recover motif composition?
-7. 
+4. Can I run HMMSTR on whole genome sequencing data?
+   - HMMSTR is designed to be run on targeted sequencing data and is not optimized for WGS data. However, if you would like to use HMMSTR to genotype specific targets from a WGS dataset we recommend you subset your dataset to only include regions of interest using ``` samtools view ``` then converting the reads back to fasta or fastq format. This will improve the specificity and runtime of the genotyping.
+6. How can I call copy number estimates from soft clipped reads?
+   - While a core requirement of the HMMSTR algorithm is detecting unique flanking sequence, you can obtain copy number estimates from soft clipped reads using HMMSTR following our methods in our manuscript ***can expand on this is necessary*** Note that this procedure will yield a rough estimate and we do plan to incorporate a more rigorous mode for soft clipped read estimates in future iterations.
+8. Can I use HMMSTR to recover motif composition?
+   - HMMSTR does not currently concurrently derive motif composition, however it can be used in conjunction with other motif decomposition softwares and we do so in our in-house processing pipeline. HMMSTR returns the position of the tandem repeat in each read as well as per-read allele assignments which allows for downstream analysis on the repeat sequences.
  </details>
