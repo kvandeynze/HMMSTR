@@ -224,6 +224,13 @@ If there is sufficient coverage across all alleles in the run, this is not an is
 </summary>
 1. Why use one peakcalling method over another?
   - Auto (default): The default peakcaller will automatically designate a methods per target based on the distribution of the data. This assumes that you have enough coverage across both alleles such that one allele will not be identified as an outlier, such as when you have 30x coverage across the normal length allele and 1x coverage at the expanded allele.
-  - KDE: The Kernel Density peakcaller differentiates heterozygous and homozygous alleles better than the GMM; however, it is easily skewed by outliers if used without discarding outliers 
-   
+  - KDE: The Kernel Density peakcaller differentiates heterozygous and homozygous alleles better than the GMM; however, it is more easily skewed by outliers if used without discarding outliers 
+2. Median vs mode allele calls: HMMSTR reports both the mode and median of the allele distributions. We report both because depending on the distribution of your data, one may be more accurate. As a general rule of thumb, the mode call will be more accurate at higher depths (>30x coverage per allele) while the median will be more accurate at lower coverage. Usually these metrics will be very similar if not the same, however if there is a significant difference, consider checking the supporting read histogram to make a more informed decision.
+3. Can I run HMMSTR on PCR-amplified data? Yes! Depending on the location of the primers used in the experiment, you may need to adjust HMMSTR parameters to account for short flanking sequence. To account for this, we have used these parameters in the past 
+   ``` 
+   hmmstr targets_tsv [Input tsv] [Output prefix] [Infile] --mapq_cutoff 0 --mode sr --k 6 --w 2 --use_full_read --flanking_size 50
+   ```
+4. Can I run HMMSTR on whole genome sequencing data? 
+5. How can I call copy number estimates from soft clipped reads?
+6. Can I use HMMSTR to recover motif composition?
  </details>
