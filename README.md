@@ -16,7 +16,7 @@ HMMSTR is optimized for targeted sequencing experiments and can be run with a si
 * importlib-resources
 * mappy
 
-* glib-2 (link to install or install code here, ubuntu below)
+* glib-2
   ```
   sudo apt install libglib2.0-dev
   ```
