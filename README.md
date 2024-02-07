@@ -3,6 +3,7 @@
   <source media="(prefers-color-scheme: dark)" srcset="images/HMMSTR_dark.png">
   <img alt="Text changing depending on mode. Light: 'So light!' Dark: 'So dark!'" src="images/HMMSTR_logo.png" width="200cm" height="200cm" align="right">
 </picture>
+
 ## A modified profile HMM for tandem repeat copy-number determination from long-reads
 HMMSTR calls tandem repeat copy number from raw, long-read, sequencing reads and reports copy numbers in both a read and sample specific format. While designed to model Nanopore sequencing errors in repetitive regions, HMMSTR can be applied to PacBio data as well and has flexible arguments to allow for custom error rates.
 
