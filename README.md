@@ -1,4 +1,4 @@
-# HMMSTR
+# HMMSTR [HMMSTR logo](images/HMMSTR_logo.png)
 ## A modified profile-HMM for tandem repeat copy-number determination from long-reads
 HMMSTR calls tandem repeat copy number from raw, long-read, sequencing reads and reports copy numbers in both a read and sample specific format. While designed to model Nanopore sequencing errors in repetitive regions, HMMSTR can be applied to PacBio data as well and has flexible arguments to allow for custom error rates.
 
@@ -37,7 +37,7 @@ usage: hmmstr [-h] [--output_plots] [--output_labelled_seqs] [--max_peaks MAX_PE
 ```
 
 HMMSTR has 2 input modes:
-1. ```targets_tsv``` (example [here](examples/example_input.tsv): Directly uses an input tsv with the following columns:
+1. ```targets_tsv``` (example [here](examples/example_input.tsv)): Directly uses an input tsv with the following columns:
     1. name: the names of all targets for a given run
     2. prefix: the sequence directly upstream of the target repeat (200bp recommended)
     3. repeat: repeat motif for given target (must be on the same strand as prefix and suffix sequences)
