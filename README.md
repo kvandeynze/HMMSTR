@@ -1,6 +1,6 @@
 # HMMSTR
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="images/HMMSTR_dark.png">
+  <source media="(prefers-color-scheme: dark)" srcset="images/hmmstr_white_fill_360.png">
   <img alt="Text changing depending on mode. Light: 'So light!' Dark: 'So dark!'" src="images/HMMSTR_logo.png" width="200cm" height="200cm" align="right">
 </picture>
 
