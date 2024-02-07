@@ -16,10 +16,15 @@ HMMSTR is optimized for targeted sequencing experiments and can be run with a si
 * importlib-resources
 * mappy
 
+* glib-2
+  ```
+  sudo apt install libglib2.0-dev
+  ```
+
 ## Installation
 HMMSTR is available on Pypi and Conda**
 ```
-pip install -i https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple HMMSTR==0.1.13
+pip install -i https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple HMMSTR==0.1.15
 ```
 (conda install here)
 (git clone install here)
@@ -159,7 +164,7 @@ see detailed output descriptions here <-- link to file or additional readme
 
 ##### Optional Outputs
 The following are output to a directory with suffix "_labelled_seqs
-1. ```tutorial_1_AAAAG_context_labeled.txt```: (Optional) Text file contianing repeat sequence and flanking context sequence colored by the optimal state path along with the read name and strand. This can be viewed on the command line. This is helpful when determining if the prefix/suffix you inputted are well fit to the repeat of interest and can help in debugging your inputs. This file is produced for each input target.
+1. ```AAAAG_context_labeled.txt```: (Optional) Text file contianing repeat sequence and flanking context sequence colored by the optimal state path along with the read name and strand. This can be viewed on the command line. This is helpful when determining if the prefix/suffix you inputted are well fit to the repeat of interest and can help in debugging your inputs. This file is produced for each input target.
 
 The following are output to a directory with suffix "_plots"
 1. ```tutorial_1AAAAGpeaks.pdf```: (Optional) Supporting read histogram displayed with the model of best fit as a density plot -- GMM or KDE depending on the peak caller chosen.
@@ -222,8 +227,22 @@ If there is sufficient coverage across all alleles in the run, this is not an is
 <summary>
   FAQs and Common Use Cases
 </summary>
-1. Why use one peakcalling method over another?
-  - Auto (default): The default peakcaller will automatically designate a methods per target based on the distribution of the data. This assumes that you have enough coverage across both alleles such that one allele will not be identified as an outlier, such as when you have 30x coverage across the normal length allele and 1x coverage at the expanded allele.
-  - KDE: The Kernel Density peakcaller differentiates heterozygous and homozygous alleles better than the GMM; however, it is easily skewed by outliers if used without discarding outliers 
    
+1. Why use one peakcalling method over another?
+   - Auto (default): The default peakcaller will automatically designate a methods per target based on the distribution of the data. This assumes that you have enough coverage across both alleles such that one allele will not be identified as an outlier, such as when you have 30x coverage across the normal length allele and 1x coverage at the expanded allele.
+   - KDE: The Kernel Density peakcaller differentiates heterozygous and homozygous alleles better than the GMM; however, it is more easily skewed by outliers if used without discarding outliers. KDE is also better at separating data into independent distributions in cases with high noise.
+   - GMM: The Gaussian mixture model peakcaller is more robust to outliers and uneven coverage across alleles. We recommend this option be used if you are concerned about missing expanded alleles and are less concerned 
+2. Median vs mode allele calls:
+   - HMMSTR reports both the mode and median of the allele distributions. We report both because depending on the distribution of your data, one may be more accurate. As a general rule of thumb, the mode call will be more accurate at higher depths (>30x coverage per allele) while the median will be more accurate at lower coverage. Usually these metrics will be very similar if not the same, however if there is a significant difference, consider checking the supporting read histogram to make a more informed decision.
+4. Can I run HMMSTR on PCR-amplified data?
+   - Yes! Depending on the location of the primers used in the experiment, you may need to adjust HMMSTR parameters to account for short flanking sequence. To account for this, we have used these parameters in our analysis of amplicon data:
+   ``` 
+   hmmstr targets_tsv [Input tsv] [Output prefix] [Infile] --mapq_cutoff 0 --mode sr --k 6 --w 2 --use_full_read --flanking_size 50
+   ```
+6. Can I run HMMSTR on whole genome sequencing data?
+   - HMMSTR is designed to be run on targeted sequencing data and is not optimized for WGS data. However, if you would like to use HMMSTR to genotype specific targets from a WGS dataset we recommend you subset your dataset to only include regions of interest using ``` samtools view ``` then converting the reads back to fasta or fastq format. This will improve the specificity and runtime of the genotyping.
+7. How can I call copy number estimates from soft clipped reads?
+   - While a core requirement of the HMMSTR algorithm is detecting unique flanking sequence, you can obtain copy number estimates from soft clipped reads using HMMSTR following our methods in our manuscript ***can expand on this is necessary*** Note that this procedure will yield a rough estimate and we do plan to incorporate a more rigorous mode for soft clipped read estimates in future iterations.
+8. Can I use HMMSTR to recover motif composition?
+   - HMMSTR does not currently concurrently derive motif composition, however it can be used in conjunction with other motif decomposition softwares and we do so in our in-house processing pipeline. HMMSTR returns the position of the tandem repeat in each read as well as per-read allele assignments which allows for downstream analysis on the repeat sequences.
  </details>
