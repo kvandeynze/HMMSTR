@@ -1,0 +1,14 @@
+targets_tsv
+tests/multi_input.txt
+output/multi_test
+tests/AAAAG_11012021_3000_sample.fasta
+--max_peaks 3
+--cpus 44
+--flanking_size 100
+--mode map-ont
+--mapq_cutoff 30
+--peakcalling_method auto
+--kernel gaussian
+--call_width 0.95
+--resample_size 500
+--filter_quantile 0.25
