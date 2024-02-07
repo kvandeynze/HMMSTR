@@ -60,7 +60,7 @@ HMMSTR has 2 input modes:
 3. input_flank_length: Length of the prefix and suffix to get from the reference genome, must be longer than 100bp (Default) or the ```--flanking_size``` optional parameter, (optional, default: 200)
 
 
-Optionally, the user may also input all options as a text file which each input parameter and option on its own line. An example of this can be found in X. This file is also automatically output to [out_prefix]_run_input.txt as a record of the run.
+Optionally, the user may also input all options as a text file which each input parameter and option on its own line. An example of this can be found [here](examples/) . This file is also automatically output to [out_prefix]_run_input.txt as a record of the run.
 ### Required Positional Arguments
 |  Argument &nbsp; &nbsp; &nbsp; | Description |
 |---|---|
@@ -153,37 +153,37 @@ Parameters to use to test different clustering methods on your data
 
   ### Output File Details
   There are two tsv files output by HMMSTR by default, a description of the columns included in both are as follows:
-  #### *_genotype_calls.tsv
+  #### [*_genotype_calls.tsv](examples/example_genotype_calls.tsv)
   This file has one row per target in the given input
-  1. name: name of the target designated by input
-  2. A1:median : median repeat copy number of allele one
-  3. A1:mode : mode repeat copy number of allele one
-  4. A1:SD : standard deviation of the allele one cluster
-  5. A1:supporting_reads : the number of reads assigned to allele 1
-  6. num_supporting_reads: total number of reads assigned to any allele
-  7. bandwidth: if KDE was used for peak calling, the bandwidth selected will display here, otherwise it is set to -1.0
-  8. peak_calling_method: which peak caller was used for a given target
+  1. `name`: name of the target designated by input
+  2. `A1:median`: median repeat copy number of allele one
+  3. `A1:mode` : mode repeat copy number of allele one
+  4. `A1:SD` : standard deviation of the allele one cluster
+  5. `A1:supporting_reads` : the number of reads assigned to allele 1
+  6. `num_supporting_reads`: total number of reads assigned to any allele
+  7. `bandwidth`: if KDE was used for peak calling, the bandwidth selected will display here, otherwise it is set to -1.0
+  8. `peak_calling_method`: which peak caller was used for a given target
 
   Note: All allele specific columns will repeat up to the `max_peaks` parameter set by input
 
-  ### *read_assignments.tsv
+  #### [*read_assignments.tsv](examples/example_read_assignments.tsv)
   This file has one row for every target a given read was assigned to, thus if a read is assigned to multiple targets it will show up multiple times
-  1. name: name of target given read was assigned to
-  2. read_id: id of the read
-  3. strand: the strand of the read relative to the input sequence or reference
-  4. align_score: combined mapq of prefix and suffix sequences
-  5. neg_log_likelihood: the negative-log-likelihood of the Viterbi path the read takes through the target model. Note: this is for the subsetted read in the default case, not the full read sequence
-  6. subset_liekihood: the negative-log-likelihood of the sequence labelled as prefix, repeat, and suffix states
-  7. repeat_likelihood: the negative-log-likelihood of the identified repeat sequence
-  8. repeat_start: the start index of the repeat relative to the full input read string
-  9. repeat_start: the end index of the repeat relative to the full input read string
-  10. align_start: the start index of the start of the upstream alignment (either prefix or suffix dependent on the strand)
-  11. align_end the end index of the end of the downstream alignment (either prefix or suffix dependent on the strand)
-  12. counts: the number of repeat copies called in the given read
-  13. freq: the frequency of the copy number for the assigned target
-  14. cluster_assignments: which allele the given read was assigned to during peak calling
-  15. outlier: boolean designating if the given read was discarded before peak calling due to exceeding the IQR of the data (if applicable, will always be False if --discard_outliers not passed)
-  16. peak_calling_method: the peak calling method used to assign the read to its allele
+  1. `name`: name of target given read was assigned to
+  2. `read_id`: id of the read
+  3. `strand`: the strand of the read relative to the input sequence or reference
+  4. `align_score`: combined mapq of prefix and suffix sequences
+  5. `neg_log_likelihood`: the negative-log-likelihood of the Viterbi path the read takes through the target model. Note: this is for the subsetted read in the default case, not the full read sequence
+  6. `subset_liekihood`: the negative-log-likelihood of the sequence labelled as prefix, repeat, and suffix states
+  7. `repeat_likelihood`: the negative-log-likelihood of the identified repeat sequence
+  8. `repeat_start`: the start index of the repeat relative to the full input read string
+  9. `repeat_start`: the end index of the repeat relative to the full input read string
+  10. `align_start`: the start index of the start of the upstream alignment (either prefix or suffix dependent on the strand)
+  11. `align_end`: the end index of the end of the downstream alignment (either prefix or suffix dependent on the strand)
+  12. `counts`: the number of repeat copies called in the given read
+  13. `freq`: the frequency of the copy number for the assigned target
+  14. `cluster_assignments`: which allele the given read was assigned to during peak calling
+  15. `outlier`: boolean designating if the given read was discarded before peak calling due to exceeding the IQR of the data (if applicable, will always be False if --discard_outliers not passed)
+  16. `peak_calling_method`: the peak calling method used to assign the read to its allele
 
   </details>
 
