@@ -1,4 +1,4 @@
-# HMMSTR <img src="images/HMMSTR_logo.png" alt="alt text" width="200cm" height="200cm" align="right">
+# HMMSTR
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="images/HMMSTR_dark.png">
   <img alt="Text changing depending on mode. Light: 'So light!' Dark: 'So dark!'" src="images/HMMSTR_logo.png" width="200cm" height="200cm" align="right">
