@@ -60,7 +60,7 @@ HMMSTR has 2 input modes:
 3. input_flank_length: Length of the prefix and suffix to get from the reference genome, must be longer than 100bp (Default) or the ```--flanking_size``` optional parameter, (optional, default: 200)
 
 
-Optionally, the user may also input all options as a text file which each input parameter and option on its own line. An example of this can be found [here](examples/) . This file is also automatically output to [out_prefix]_run_input.txt as a record of the run.
+Optionally, the user may also input all options as a text file which each input parameter and option on its own line. An example of this can be found [here](examples/multi_test_run_input.txt). This file is also automatically output to [out_prefix]_run_input.txt as a record of the run.
 ### Required Positional Arguments
 |  Argument &nbsp; &nbsp; &nbsp; | Description |
 |---|---|
