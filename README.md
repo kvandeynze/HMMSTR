@@ -1,5 +1,10 @@
 # HMMSTR
-## A modified profile-HMM for tandem repeat copy-number determination from long-reads
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="images/hmmstr_white_fill_360.png">
+  <img alt="Text changing depending on mode. Light: 'So light!' Dark: 'So dark!'" src="images/HMMSTR_logo.png" width="200cm" height="200cm" align="right">
+</picture>
+
+## A modified profile HMM for tandem repeat copy-number determination from long-reads
 HMMSTR calls tandem repeat copy number from raw, long-read, sequencing reads and reports copy numbers in both a read and sample specific format. While designed to model Nanopore sequencing errors in repetitive regions, HMMSTR can be applied to PacBio data as well and has flexible arguments to allow for custom error rates.
 
 HMMSTR is optimized for targeted sequencing experiments and can be run with a single or multiple target regions/sequences in a global-alignment and reference free format.
@@ -16,7 +21,7 @@ HMMSTR is optimized for targeted sequencing experiments and can be run with a si
 * importlib-resources
 * mappy
 
-* glib-2
+* glib-2 (Ubuntu install command below)
   ```
   sudo apt install libglib2.0-dev
   ```
@@ -31,20 +36,18 @@ pip install -i https://test.pypi.org/simple/ --extra-index-url https://pypi.org/
 
 ## Usage
 ```
-usage: hmmstr [-h] [--background BACKGROUND] [--E_probs E_PROBS] [--A_probs A_PROBS] [--custom_RM CUSTOM_RM] [--hmm_pre HMM_PRE] [--output_plots] [--output_labelled_seqs] [--max_peaks MAX_PEAKS] [--cpus CPUS]
-              [--flanking_size FLANKING_SIZE] [--mode MODE] [--mapq_cutoff MAPQ_CUTOFF] [--k K] [--w W] [--use_full_read] [--peakcalling_method PEAKCALLING_METHOD] [--bandwidth BANDWIDTH] [--kernel KERNEL]
-              [--bootstrap] [--call_width CALL_WIDTH] [--resample_size RESAMPLE_SIZE] [--allele_specific_CIs] [--allele_specific_plots] [--discard_outliers] [--filter_quantile FILTER_QUANTILE]
-              [--flanking_like_filter] [--stranded_report] [--cluster_only] [--save_intermediates]
+usage: hmmstr [-h] [--output_plots] [--output_labelled_seqs] [--max_peaks MAX_PEAKS] [--cpus CPUS] [--flanking_size FLANKING_SIZE] [--mode MODE] [--mapq_cutoff MAPQ_CUTOFF] [--k K] [--w W] [--use_full_read] [--peakcalling_method PEAKCALLING_METHOD] [--bandwidth BANDWIDTH] [--kernel KERNEL] [--bootstrap] [--call_width CALL_WIDTH] [--resample_size RESAMPLE_SIZE] [--allele_specific_CIs] [--allele_specific_plots]
+              [--discard_outliers] [--filter_quantile FILTER_QUANTILE] [--flanking_like_filter] [--stranded_report] [--cluster_only] [--save_intermediates] [--background BACKGROUND] [--E_probs E_PROBS] [--A_probs A_PROBS] [--custom_RM CUSTOM_RM] [--hmm_pre HMM_PRE]
               {targets_tsv,coordinates} ... out inFile
 ```
 
 HMMSTR has 2 input modes:
-1. ```targets_tsv```: Directly uses an input tsv with the following columns:
+1. ```targets_tsv``` (example [here](examples/example_input.tsv)): Directly uses an input tsv with the following columns:
     1. name: the names of all targets for a given run
     2. prefix: the sequence directly upstream of the target repeat (200bp recommended)
     3. repeat: repeat motif for given target (must be on the same strand as prefix and suffix sequences)
     4. suffix: the sequence directly downstream of the target repeat (200bp recommended)
-2. ```coordinates```: Uses a custom bedfile to create the targets tsv from the following columns:
+2. ```coordinates``` (example [here](panel_target_inputs/final_daTR_coords_disease_abb.txt)): Uses a custom bedfile to create the targets tsv from the following columns:
     1. Chromosoms
     2. Start coordinate
     3. End coordinate
@@ -57,7 +60,7 @@ HMMSTR has 2 input modes:
 3. input_flank_length: Length of the prefix and suffix to get from the reference genome, must be longer than 100bp (Default) or the ```--flanking_size``` optional parameter, (optional, default: 200)
 
 
-Optionally, the user may also input all options as a text file which each input parameter and option on its own line. An example of this can be found in X. This file is also automatically output to [out_prefix]_run_input.txt as a record of the run.
+Optionally, the user may also input all options as a text file which each input parameter and option on its own line. An example of this can be found [here](examples/) . This file is also automatically output to [out_prefix]_run_input.txt as a record of the run.
 ### Required Positional Arguments
 |  Argument &nbsp; &nbsp; &nbsp; | Description |
 |---|---|
@@ -145,6 +148,45 @@ Parameters to use to test different clustering methods on your data
 | --cluster_only | Only run peak calling step on existing raw repeat copy counts data ```'out''target_name'_counts.txt```. NOTE: Must use the same output and target names as the run that produced the counts files.|
 </details>
 
+<details>
+  <summary> Output File Details </summary>
+
+  ### Output File Details
+  There are two tsv files output by HMMSTR by default, a description of the columns included in both are as follows:
+  #### [*_genotype_calls.tsv](examples/example_genotype_calls.tsv)
+  This file has one row per target in the given input
+  1. `name`: name of the target designated by input
+  2. `A1:median`: median repeat copy number of allele one
+  3. `A1:mode` : mode repeat copy number of allele one
+  4. `A1:SD` : standard deviation of the allele one cluster
+  5. `A1:supporting_reads` : the number of reads assigned to allele 1
+  6. `num_supporting_reads`: total number of reads assigned to any allele
+  7. `bandwidth`: if KDE was used for peak calling, the bandwidth selected will display here, otherwise it is set to -1.0
+  8. `peak_calling_method`: which peak caller was used for a given target
+
+  Note: All allele specific columns will repeat up to the `max_peaks` parameter set by input
+
+  #### [*read_assignments.tsv](examples/example_read_assignments.tsv)
+  This file has one row for every target a given read was assigned to, thus if a read is assigned to multiple targets it will show up multiple times
+  1. `name`: name of target given read was assigned to
+  2. `read_id`: id of the read
+  3. `strand`: the strand of the read relative to the input sequence or reference
+  4. `align_score`: combined mapq of prefix and suffix sequences
+  5. `neg_log_likelihood`: the negative-log-likelihood of the Viterbi path the read takes through the target model. Note: this is for the subsetted read in the default case, not the full read sequence
+  6. `subset_liekihood`: the negative-log-likelihood of the sequence labelled as prefix, repeat, and suffix states
+  7. `repeat_likelihood`: the negative-log-likelihood of the identified repeat sequence
+  8. `repeat_start`: the start index of the repeat relative to the full input read string
+  9. `repeat_start`: the end index of the repeat relative to the full input read string
+  10. `align_start`: the start index of the start of the upstream alignment (either prefix or suffix dependent on the strand)
+  11. `align_end`: the end index of the end of the downstream alignment (either prefix or suffix dependent on the strand)
+  12. `counts`: the number of repeat copies called in the given read
+  13. `freq`: the frequency of the copy number for the assigned target
+  14. `cluster_assignments`: which allele the given read was assigned to during peak calling
+  15. `outlier`: boolean designating if the given read was discarded before peak calling due to exceeding the IQR of the data (if applicable, will always be False if --discard_outliers not passed)
+  16. `peak_calling_method`: the peak calling method used to assign the read to its allele
+
+  </details>
+
 ## Example Use Cases
 <details>
   <summary> Basic Use: Single Plasmid Target </summary>
@@ -154,8 +196,6 @@ Here, we run HMMSTR on a sequence file containing nanopore reads from a plasmid 
 ```
 hmmstr targets_tsv AAAAG_input.txt ./tutorial_1 AAAAG_11012021_3000_sample.fasta --max_peaks 3 --output_plots --output_labelled_seqs
 ```
-#### Outputs:
-see detailed output descriptions here <-- link to file or additional readme
 ##### Default Outputs
 1. ```tutorial_1_genotype_calls.tsv```: TSV containing final allele calls per target
 2. ```tutorial_1_read_assignments.tsv```: TSV containing read level statistics and coordinates, copy number predictions, and allele assignments
