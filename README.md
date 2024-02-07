@@ -1,4 +1,8 @@
 # HMMSTR <img src="images/HMMSTR_logo.png" alt="alt text" width="200cm" height="200cm" align="right">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="images/HMMSTR_dark.png">
+  <img alt="Text changing depending on mode. Light: 'So light!' Dark: 'So dark!'" src="images/HMMSTR_logo.png" width="200cm" height="200cm" align="right">
+</picture>
 ## A modified profile HMM for tandem repeat copy-number determination from long-reads
 HMMSTR calls tandem repeat copy number from raw, long-read, sequencing reads and reports copy numbers in both a read and sample specific format. While designed to model Nanopore sequencing errors in repetitive regions, HMMSTR can be applied to PacBio data as well and has flexible arguments to allow for custom error rates.
 
@@ -142,6 +146,11 @@ Parameters to use to test different clustering methods on your data
 | --save_intermediates | Flag designating to save intermediate files including model inputs, raw count files, and state sequence files. NOTE: raw count files are required to recall alleles without rerunning the counting algorithm, see ```--cluster_only```|
 | --cluster_only | Only run peak calling step on existing raw repeat copy counts data ```'out''target_name'_counts.txt```. NOTE: Must use the same output and target names as the run that produced the counts files.|
 </details>
+
+<details>
+  <summary> Output File Details </summary>
+
+  </details>
 
 ## Example Use Cases
 <details>
