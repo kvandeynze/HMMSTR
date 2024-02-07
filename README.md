@@ -37,12 +37,12 @@ usage: hmmstr [-h] [--output_plots] [--output_labelled_seqs] [--max_peaks MAX_PE
 ```
 
 HMMSTR has 2 input modes:
-1. ```targets_tsv```: Directly uses an input tsv with the following columns:
+1. ```targets_tsv``` (example [here](examples/example_input.tsv): Directly uses an input tsv with the following columns:
     1. name: the names of all targets for a given run
     2. prefix: the sequence directly upstream of the target repeat (200bp recommended)
     3. repeat: repeat motif for given target (must be on the same strand as prefix and suffix sequences)
     4. suffix: the sequence directly downstream of the target repeat (200bp recommended)
-2. ```coordinates```: Uses a custom bedfile to create the targets tsv from the following columns:
+2. ```coordinates``` (example [here](panel_target_inputs/final_daTR_coords_disease_abb.txt)): Uses a custom bedfile to create the targets tsv from the following columns:
     1. Chromosoms
     2. Start coordinate
     3. End coordinate
