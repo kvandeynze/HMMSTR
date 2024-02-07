@@ -24,7 +24,7 @@ HMMSTR is optimized for targeted sequencing experiments and can be run with a si
 ## Installation
 HMMSTR is available on Pypi and Conda**
 ```
-pip install -i https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple HMMSTR==0.1.13
+pip install -i https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple HMMSTR==0.1.15
 ```
 (conda install here)
 (git clone install here)
