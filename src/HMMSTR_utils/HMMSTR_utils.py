@@ -107,6 +107,14 @@ def throw_low_cov(df):
     filtered = df[df.freq > 1]
     return filtered
 
+def throw_low_perc(df,perc):
+    '''
+    Filters any copy number with less than one supporting read
+    '''
+    total_cov = df.shape[0]
+    outlier = df[(df.freq/total_cov) < perc]
+    return outlier
+
 def get_IQR(df,quantile=0.25):
     '''
     Calculates the inter quantile range of the supporting read distribution

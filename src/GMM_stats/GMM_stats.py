@@ -11,7 +11,7 @@ from matplotlib.ticker import MaxNLocator
 import warnings
 warnings.filterwarnings('ignore')
 
-from HMMSTR_utils.HMMSTR_utils import remove_outlier_IQR, throw_low_cov, remove_flanking_outliers
+from HMMSTR_utils.HMMSTR_utils import remove_outlier_IQR, throw_low_cov, remove_flanking_outliers,throw_low_perc
 
 class GMMStats:
     def __init__(self, target_row):
@@ -50,7 +50,7 @@ class GMMStats:
         plt.show()
         plt.clf()
         return #currently does not work and isnt called
-    def get_stats(self, out_count_file, out, plot_hists, filter_outliers=False, filter_quantile=0.25, flanking_like_filter=False, curr_strand=None):
+    def get_stats(self, out_count_file, out, plot_hists, filter_outliers=False, filter_quantile=0.25, flanking_like_filter=False, curr_strand=None,outlier_method="IQR"):
         '''
         Function to calculate summary stats for a single target
 
@@ -81,8 +81,11 @@ class GMMStats:
         outliers = []
         flanking_outliers = []
         if filter_outliers:
-            filtered, outliers = remove_outlier_IQR(counts_data.counts, filter_quantile)
-        counts_data['outlier'] = np.where(counts_data.counts.isin(outliers),True , False)
+            if outlier_method == "IQR":
+                filtered, outliers = remove_outlier_IQR(counts_data.counts, filter_quantile)
+            else:
+                outliers = throw_low_perc(counts_data,filter_quantile) #assume filter quantile is set to the percent we want to filter by for clarity
+            counts_data['outlier'] = np.where(counts_data.counts.isin(outliers.counts),True , False)
         if flanking_like_filter:
             flanking_filtered, flanking_outliers = remove_flanking_outliers(counts_data)
         counts_data['flanking_outlier'] = np.where(counts_data.read_id.isin(flanking_outliers),True , False)

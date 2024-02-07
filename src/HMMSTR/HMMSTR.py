@@ -198,7 +198,7 @@ def decide_method(target,out,out_count_name):
         decision = "gmm"
     return decision
 
-def call_peaks(row, out, out_count_name, plot_hists, max_peaks, filter_outliers=False, filter_quantile=0.25,bootstrap=False, CI_width=0.95, resample_size=100,allele_specific_plots=False,allele_specif_CIs=False, bandwidth='scott',kernel="gaussian",flanking_like_filter=False):
+def call_peaks(row, out, out_count_name, plot_hists, max_peaks, filter_outliers=False, filter_quantile=0.25,bootstrap=False, CI_width=0.95, resample_size=100,allele_specific_plots=False,allele_specif_CIs=False, bandwidth='scott',kernel="gaussian",flanking_like_filter=False,outlier_method=None):
     '''
     This method is the wrapper function for calling both KDE and GMM classes based on the decision per target, it also insures the outputs are uniform across all methods
 
@@ -251,15 +251,15 @@ def call_peaks(row, out, out_count_name, plot_hists, max_peaks, filter_outliers=
             final = allele_calls_series[cols]
             return final
         #get read info tsv
-        curr_kde.data = curr_kde.get_stats(plot_hists, filter_outliers, filter_quantile, flanking_like_filter)
+        curr_kde.data = curr_kde.get_stats(plot_hists, filter_outliers, filter_quantile, flanking_like_filter,outlier_method=outlier_method)
         
-        clusters, allele_calls, outliers, flanking_outliers = curr_kde.call_clusters(kernel=kernel, bandwidth=bandwidth,max_k=max_peaks, output_plots =  plot_hists, filter_quantile=filter_quantile)
+        clusters, allele_calls, outliers, flanking_outliers = curr_kde.call_clusters(kernel=kernel, bandwidth=bandwidth,max_k=max_peaks, output_plots =  plot_hists, filter_quantile=filter_quantile,outlier_method=outlier_method)
         assignments = curr_kde.assign_clusters(clusters,outliers, flanking_outliers)
 
         #plot allele_specific plots if applicable
         if allele_specific_plots:
             for assignment in assignments.cluster_assignments.unique():
-                curr_kde.call_clusters(kernel=kernel, bandwidth=bandwidth,max_k=1, output_plots =  True, subset=assignments[assignments.cluster_assignments == assignment], allele_specific=True, allele=assignment, filter_quantile=filter_quantile)
+                curr_kde.call_clusters(kernel=kernel, bandwidth=bandwidth,max_k=1, output_plots =  True, subset=assignments[assignments.cluster_assignments == assignment], allele_specific=True, allele=assignment, filter_quantile=filter_quantile,outlier_method=outlier_method)
     
         #write out read assignments
         assignments["name"] = curr_kde.name
@@ -342,7 +342,7 @@ def call_peaks(row, out, out_count_name, plot_hists, max_peaks, filter_outliers=
             return pd.Series(curr_dict)
         #initialize GMMStats object
         gmm_stats = GMMStats(target_row=row) #contains all target attributes as well as E and A dictionaries
-        final_data = gmm_stats.get_stats(out_count_file, out,plot_hists, filter_outliers, filter_quantile=filter_quantile,flanking_like_filter=flanking_like_filter)
+        final_data = gmm_stats.get_stats(out_count_file, out,plot_hists, filter_outliers, filter_quantile=filter_quantile,flanking_like_filter=flanking_like_filter,outlier_method=outlier_method)
         
         #peak calling
         final_data2 = final_data[final_data.outlier == False][final_data.flanking_outlier == False][final_data.counts != 0].copy()
@@ -380,7 +380,7 @@ def call_peaks(row, out, out_count_name, plot_hists, max_peaks, filter_outliers=
     curr_row["peak_calling_method"] = decision
     return curr_row #return genotype
     
-def call_peaks_stranded(row, out, out_count_name, plot_hists, max_peaks, filter_outliers=False, filter_quantile=0.25,bootstrap=False, CI_width=0.95, resample_size=100,allele_specific_plots=False,allele_specif_CIs=False, bandwidth='scott',kernel="gaussian",flanking_like_filter=False, strand=None):
+def call_peaks_stranded(row, out, out_count_name, plot_hists, max_peaks, filter_outliers=False, filter_quantile=0.25,bootstrap=False, CI_width=0.95, resample_size=100,allele_specific_plots=False,allele_specif_CIs=False, bandwidth='scott',kernel="gaussian",flanking_like_filter=False, strand=None,outlier_method=None):
     '''
     This method is the wrapper function for calling both KDE and GMM classes based on the decision per target, it also insures the outputs are uniform across all methods. This version runs only on the given strand.
 
@@ -434,15 +434,15 @@ def call_peaks_stranded(row, out, out_count_name, plot_hists, max_peaks, filter_
             final = allele_calls_series[cols]
             return final #TODO figure out how to return in a stranded manner
         #get read info tsv
-        curr_kde.data = curr_kde.get_stats(plot_hists, filter_outliers, filter_quantile, flanking_like_filter, strand=strand)
+        curr_kde.data = curr_kde.get_stats(plot_hists, filter_outliers, filter_quantile, flanking_like_filter, strand=strand,outlier_method=outlier_method)
         
-        clusters, allele_calls, outliers, flanking_outliers = curr_kde.call_clusters(kernel=kernel, bandwidth=bandwidth,max_k=max_peaks, output_plots =  plot_hists, filter_quantile=filter_quantile,strand=strand)
+        clusters, allele_calls, outliers, flanking_outliers = curr_kde.call_clusters(kernel=kernel, bandwidth=bandwidth,max_k=max_peaks, output_plots =  plot_hists, filter_quantile=filter_quantile,strand=strand, outlier_method=outlier_method)
         assignments = curr_kde.assign_clusters(clusters,outliers, flanking_outliers)
 
         #plot allele_specific plots if applicable
         if allele_specific_plots:
             for assignment in assignments.cluster_assignments.unique():
-                curr_kde.call_clusters(kernel=kernel, bandwidth=bandwidth,max_k=1, output_plots =  True, subset=assignments[assignments.cluster_assignments == assignment], allele_specific=True, allele=assignment, filter_quantile=filter_quantile, strand=strand)
+                curr_kde.call_clusters(kernel=kernel, bandwidth=bandwidth,max_k=1, output_plots =  True, subset=assignments[assignments.cluster_assignments == assignment], allele_specific=True, allele=assignment, filter_quantile=filter_quantile, strand=strand,outlier_method=outlier_method)
     
         #write out read assignments
         assignments["name"] = curr_kde.name
@@ -526,7 +526,7 @@ def call_peaks_stranded(row, out, out_count_name, plot_hists, max_peaks, filter_
             return pd.Series(curr_dict)
         #initialize GMMStats object
         gmm_stats = GMMStats(target_row=row) #contains all target attributes as well as E and A dictionaries
-        final_data = gmm_stats.get_stats(out_count_file, out,plot_hists, filter_outliers, filter_quantile=filter_quantile,flanking_like_filter=flanking_like_filter, curr_strand=strand)
+        final_data = gmm_stats.get_stats(out_count_file, out,plot_hists, filter_outliers, filter_quantile=filter_quantile,flanking_like_filter=flanking_like_filter, curr_strand=strand,outlier_method=outlier_method)
     
         final_data.to_csv(out +"_"+ gmm_stats.name +"_"+strand+"_final_out.tsv", index = False, sep="\t")
         
@@ -611,8 +611,9 @@ def main():
     #allele specific stats options
     parser.add_argument("--allele_specific_CIs",  help="Output allele-specific bootsrapped confidence intervals", action='store_true')
     parser.add_argument("--allele_specific_plots", help="Output allele-specific histograms with model of best fit", action='store_true')
-    parser.add_argument("--discard_outliers", help="Discard outliers based on quantile", action='store_true')
-    parser.add_argument("--filter_quantile", type=float, help="Float designating quantile of count frequency to discard when filtering outliers (default: %(default)s)", default=0.25)
+    parser.add_argument("--discard_outliers", help="Discard outliers based on outlier_method, default IQR", action='store_true')
+    parser.add_argument("--outlier_method",type=str,help="Discard outliers by either IQR or percentile",default="IQR")
+    parser.add_argument("--filter_quantile", type=float, help="Float designating quantile or percentile of count frequency to discard when filtering outliers (default: %(default)s)", default=0.25)
 
     #post read processing filters/options
     parser.add_argument("--flanking_like_filter", help="If set, filter reads per target that are designated as outliers based on flanking sequence likelihood",action='store_true')
@@ -767,7 +768,7 @@ def main():
             pd.DataFrame(['name','read_id','strand', 'align_score','neg_log_likelihood', 'subset_likelihood', 'repeat_likelihood','repeat_start', 'repeat_end', 'align_start', 'align_end', 'counts','freq','cluster_assignments',"outlier","peak_calling_method"]).T.to_csv(args.out + "_read_assignments.tsv", sep="\t", index=False,header=None)
 
         #call genotypes with assigned or given peakcalling method
-        geno_df = targets.apply(call_peaks, args=(args.out, out_count_name, args.output_plots,args.max_peaks,args.discard_outliers,args.filter_quantile,args.bootstrap, args.call_width, args.resample_size,args.allele_specific_plots,args.allele_specific_CIs, args.bandwidth,args.kernel,args.flanking_like_filter), axis=1)
+        geno_df = targets.apply(call_peaks, args=(args.out, out_count_name, args.output_plots,args.max_peaks,args.discard_outliers,args.filter_quantile,args.bootstrap, args.call_width, args.resample_size,args.allele_specific_plots,args.allele_specific_CIs, args.bandwidth,args.kernel,args.flanking_like_filter,args.outlier_method), axis=1)
         #check if valid genotype output
         if isinstance(geno_df, pd.DataFrame):
             #sort outputs
@@ -788,8 +789,8 @@ def main():
             pd.DataFrame(['name','read_id','strand', 'align_score','neg_log_likelihood', 'subset_likelihood', 'repeat_likelihood','repeat_start', 'repeat_end', 'align_start', 'align_end', 'counts','freq','cluster_assignments',"outlier","peak_calling_method"]).T.to_csv(args.out + "_reverse_read_assignments.tsv", sep="\t", index=False,header=None)
 
         #genotype each strand independently
-        geno_forward_df = targets.apply(call_peaks_stranded, args=(args.out, out_count_name, args.output_plots,args.max_peaks,args.discard_outliers,args.filter_quantile,args.bootstrap, args.call_width, args.resample_size,args.allele_specific_plots,args.allele_specific_CIs, args.bandwidth,args.kernel,args.flanking_like_filter,"forward"), axis=1)
-        geno_reverse_df = targets.apply(call_peaks_stranded, args=(args.out, out_count_name, args.output_plots,args.max_peaks,args.discard_outliers,args.filter_quantile,args.bootstrap, args.call_width, args.resample_size,args.allele_specific_plots,args.allele_specific_CIs, args.bandwidth,args.kernel,args.flanking_like_filter, "reverse"), axis=1)
+        geno_forward_df = targets.apply(call_peaks_stranded, args=(args.out, out_count_name, args.output_plots,args.max_peaks,args.discard_outliers,args.filter_quantile,args.bootstrap, args.call_width, args.resample_size,args.allele_specific_plots,args.allele_specific_CIs, args.bandwidth,args.kernel,args.flanking_like_filter,"forward",args.outlier_method), axis=1)
+        geno_reverse_df = targets.apply(call_peaks_stranded, args=(args.out, out_count_name, args.output_plots,args.max_peaks,args.discard_outliers,args.filter_quantile,args.bootstrap, args.call_width, args.resample_size,args.allele_specific_plots,args.allele_specific_CIs, args.bandwidth,args.kernel,args.flanking_like_filter, "reverse",args.outlier_method), axis=1)
         
         #concat stranded results
         geno_df = pd.concat([geno_forward_df,geno_reverse_df]).sort_values(by="name")

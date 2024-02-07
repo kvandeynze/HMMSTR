@@ -11,7 +11,7 @@ import os
 import statistics as stat
 from collections import Counter
 
-from HMMSTR_utils.HMMSTR_utils import throw_low_cov, remove_outlier_IQR, remove_flanking_outliers
+from HMMSTR_utils.HMMSTR_utils import throw_low_cov, remove_outlier_IQR, remove_flanking_outliers, throw_low_perc
 warnings.filterwarnings('ignore')
 
 class KDE_cluster:
@@ -34,7 +34,7 @@ class KDE_cluster:
                 self.data = None
         else:
             self.data = None
-    def get_stats(self, plot_hists, filter_outliers=False, filter_quantile=0.25,flanking_like_filter=False, strand=None):
+    def get_stats(self, plot_hists, filter_outliers=False, filter_quantile=0.25,flanking_like_filter=False, strand=None,outlier_method="IQR"):
         '''
         Function to calculate summary stats for a single target
 
@@ -58,9 +58,12 @@ class KDE_cluster:
         outliers = []
         flanking_outliers=[]
         if filter_outliers:
-            filtered, outliers = remove_outlier_IQR(counts_data.counts, filter_quantile)
+            if outlier_method == "IQR":
+                filtered, outliers = remove_outlier_IQR(counts_data.counts, filter_quantile)
+            else:
+                outliers = throw_low_perc(counts_data,filter_quantile)
             #counts_data = counts_data[counts_data.counts.isin(filtered)]
-        counts_data['outlier'] = np.where(counts_data.counts.isin(outliers),True , False)
+        counts_data['outlier'] = np.where(counts_data.counts.isin(outliers.counts),True , False)
         #check for flanking likelihood outliers
         if flanking_like_filter:
             flanking_filtered, flanking_outliers = remove_flanking_outliers(counts_data)
@@ -98,7 +101,7 @@ class KDE_cluster:
         plt.show()
         plt.clf()
         return #currently does not work and isnt called
-    def call_clusters(self,kernel="gaussian", bandwidth = 'scott', max_k = 2, output_plots = False, subset=None, filter_quantile=0.25, allele_specific = False, allele = None, strand=None):
+    def call_clusters(self,kernel="gaussian", bandwidth = 'scott', max_k = 2, output_plots = False, subset=None, filter_quantile=0.25, allele_specific = False, allele = None, strand=None,outlier_method="IQR"):
         '''
         This function uses kernal density estimation to resolve alleles. It is ideal when data is normally distributed
         and has a relatively small range or overlapping count distributions
@@ -140,7 +143,11 @@ class KDE_cluster:
         outliers = pd.Series()
         flanking_outliers = pd.Series()
         if self.discard_outliers and self.flanking_like_filter == False: #only discard outliers
-            filtered, outliers = remove_outlier_IQR(self.data.counts,filter_quantile)
+            if outlier_method == "IQR":
+                filtered, outliers = remove_outlier_IQR(self.data.counts,filter_quantile)
+            else:
+                outliers = throw_low_perc(self.data,filter_quantile).counts
+                filtered = self.data.counts[np.where(self.data.counts.isin(outliers),False , True)]
             a = np.array(filtered).reshape(-1,1)
         elif self.flanking_like_filter: #either flanking filter or both
             flanking_filtered, flanking_outliers = remove_flanking_outliers(self.data)
