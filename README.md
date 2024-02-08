@@ -130,10 +130,10 @@ Optionally, the user may also input all options as a text file which each input 
 Optional tsv inputs to set custom model parameters.
 |  Argument &nbsp; &nbsp; &nbsp; | Description |
 |---|---|
-|--background| TSV with custom background frequencies to encode in genome states (see "background_example.tsv")|
-|--E_probs| TSV with custom emission probabilities to be encoded in match states. These should correspond to the expected mismatch rate (see "emission_example.tsv")|
-|--A_probs| TSV with custom transition probibilities to be encoded in the model. Column names in "P_xy" format such that 'x' is the first state type and 'y' is the state type 'x' transitions to (see "transition_example.tsv")|
-|--custom_RM| TSV with columns corresponding to a given postion in the repeat motif and rows corresponding to possible nucleotides (and deletion character ''). This is used to designate custom nucleotide occupancy per position in a given motif in case of known mosaicism (ie AAGGG vs AAAAG at the CANVAS locus). Note: this matrix will be applied to all models in a given run, it is advised you only use it in single target runs (see "RM_example.tsv")|
+|--background| TSV with custom background frequencies to encode in genome states (example [here](examples/custom_background_example.txt)|
+|--E_probs| TSV with custom emission probabilities to be encoded in match states. These should correspond to the expected mismatch rate (example [here](examples/custom_emission_example.txt)|
+|--A_probs| TSV with custom transition probibilities to be encoded in the model. Column names in "P_xy" format such that 'x' is the first state type and 'y' is the state type 'x' transitions to (example [here](examples/custom_transitions_example.txt)|
+|--custom_RM| TSV with columns corresponding to a given postion in the repeat motif and rows corresponding to possible nucleotides (and deletion character ''). This is used to designate custom nucleotide occupancy per position in a given motif in case of known mosaicism (ie AAGGG vs AAAAG at the CANVAS locus). Note: this matrix will be applied to all models in a given run, it is advised you only use it in single target runs (example [here](examples/custom_RM_example.txt)|
 
 #### Advanced Alignment Options
 Parameters to pass to Mappy during alignment step
@@ -194,7 +194,7 @@ Parameters to use to test different clustering methods on your data
   <summary> Basic Use: Single Plasmid Target </summary>
   
 ### Basic Use: Single Plasmid Target
-Here, we run HMMSTR on a sequence file containing nanopore reads from a plasmid construct with variable copies of an AAAAG repeat motif. Since these are plasmid contructs, we wrote our input tsv file ```AAAAG_input.txt``` by setting the prefix column to the 200bp upstream sequnce directly flanking the AAAAG repeat from the known backbone sequence and set the suffix column with the downstream flanking sequence. For this example, we will use all default parameters with the exception of ```--output_plots```, ```--max_peaks```, and ```--output_labelled_seqs```.
+Here, we run HMMSTR on a sequence file containing nanopore reads from a plasmid construct with variable copies of an AAAAG repeat motif. Since these are plasmid contructs, we wrote our input tsv file [AAAAG_input.txt](tests/AAAAG_input.txt) by setting the prefix column to the 200bp upstream sequnce directly flanking the AAAAG repeat from the known backbone sequence and set the suffix column with the downstream flanking sequence. For this example, we will use all default parameters with the exception of ```--output_plots```, ```--max_peaks```, and ```--output_labelled_seqs```.
 ```
 hmmstr targets_tsv AAAAG_input.txt ./tutorial_1 AAAAG_11012021_3000_sample.fasta --max_peaks 3 --output_plots --output_labelled_seqs
 ```
@@ -247,7 +247,7 @@ Allele 1           |  Allele 2           |  Allele 3
    <summary> Repeat Expansion Panel </summary>
    
    ### Repeat Expansion Panel
-   HMMSTR was designed with our repeat expansion panel as described in our manuscript (<- link) in mind. While HMMSTR performs optimally at a 100bp prefix and suffix model across all targets, in practice some targets do have more optimal model sizes based on their sequence context. For this reason, we provide [input target files](panel_target_inputs) (both coordinates and tsv inputs) separated by optimal model sizes as well as an example bash script (link here) for running our panel. Below is an example of how to run one set of our targets (targets with 100bp flanking sequence model as their optimal model) in ```coordinates``` mode with a description of a few caveats you may run into running HMMSTR on samples from individuals with repeat expansion disorders.
+   HMMSTR was designed as a companion tandem repeat caller for our repeat expansion panel as described in our manuscript (<- link). While HMMSTR performs optimally at a 100bp prefix and suffix model across all targets, in practice some targets do have more optimal model sizes based on their sequence context. For this reason, we provide [input target files](panel_target_inputs) (both coordinates and tsv inputs) separated by optimal model sizes. Below is an example of how to run one set of our targets (targets with 100bp flanking sequence model as their optimal model) in ```coordinates```.
 
    Run with ```coordinates``` input and all default parameters except ```--mapq_cutoff``` (we want to be strict with reads we accept)
    ```
@@ -270,21 +270,23 @@ If there is sufficient coverage across all alleles in the run, this is not an is
   FAQs and Common Use Cases
 </summary>
    
-1. Why use one peakcalling method over another?
-   - Auto (default): The default peakcaller will automatically designate a methods per target based on the distribution of the data. This assumes that you have enough coverage across both alleles such that one allele will not be identified as an outlier, such as when you have 30x coverage across the normal length allele and 1x coverage at the expanded allele.
-   - KDE: The Kernel Density peakcaller differentiates heterozygous and homozygous alleles better than the GMM; however, it is more easily skewed by outliers if used without discarding outliers. KDE is also better at separating data into independent distributions in cases with high noise.
-   - GMM: The Gaussian mixture model peakcaller is more robust to outliers and uneven coverage across alleles. We recommend this option be used if you are concerned about missing expanded alleles and are less concerned 
+1. Why use one peak calling method over another?
+   - Auto (default): The default peak caller will automatically designate a method per target based on the distribution of the data. This assumes that you have enough coverage across all alleles.
+   - KDE: The Kernel Density peakcaller differentiates heterozygous and homozygous alleles better than the GMM peak caller; however, it is more easily skewed by outliers if used without discarding outliers. KDE is also better at separating data into independent distributions in cases with high noise.
+   - GMM: The Gaussian mixture model peakcaller is more robust to outliers and uneven coverage across alleles. We recommend this option be used if you want higher sensitivity to detecting expanded alleles at low coverage and are less concerned about resolving heterozygous vs homozygous alleles with low copy number separation.
 2. Median vs mode allele calls:
-   - HMMSTR reports both the mode and median of the allele distributions. We report both because depending on the distribution of your data, one may be more accurate. As a general rule of thumb, the mode call will be more accurate at higher depths (>30x coverage per allele) while the median will be more accurate at lower coverage. Usually these metrics will be very similar if not the same, however if there is a significant difference, consider checking the supporting read histogram to make a more informed decision.
+   - HMMSTR reports both the mode and median of the allele distribution. We report both because depending on the distribution of your data, one may be more accurate. As a general rule of thumb, the mode call will be more accurate at higher depths (>30x coverage per allele) while the median will be more accurate and consistent at lower coverage. Usually these metrics will be very similar if not the same, however if there is a significant difference, consider checking the supporting read histogram to make a more informed decision.
 4. Can I run HMMSTR on PCR-amplified data?
    - Yes! Depending on the location of the primers used in the experiment, you may need to adjust HMMSTR parameters to account for short flanking sequence. To account for this, we have used these parameters in our analysis of amplicon data:
    ``` 
    hmmstr targets_tsv [Input tsv] [Output prefix] [Infile] --mapq_cutoff 0 --mode sr --k 6 --w 2 --use_full_read --flanking_size 50
    ```
 6. Can I run HMMSTR on whole genome sequencing data?
-   - HMMSTR is designed to be run on targeted sequencing data and is not optimized for WGS data. However, if you would like to use HMMSTR to genotype specific targets from a WGS dataset we recommend you subset your dataset to only include regions of interest using ``` samtools view ``` then converting the reads back to fasta or fastq format. This will improve the specificity and runtime of the genotyping.
-7. How can I call copy number estimates from soft clipped reads?
-   - While a core requirement of the HMMSTR algorithm is detecting unique flanking sequence, you can obtain copy number estimates from soft clipped reads using HMMSTR following our methods in our manuscript ***can expand on this is necessary*** Note that this procedure will yield a rough estimate and we do plan to incorporate a more rigorous mode for soft clipped read estimates in future iterations.
+   - HMMSTR is designed for targeted sequencing data and is not optimized for WGS data. However, if you would like to use HMMSTR to genotype specific targets from a WGS dataset we recommend you subset your dataset to only include regions of interest using ``` samtools view ``` then converting the reads back to fasta or fastq format. This will improve the specificity and runtime of the genotyping.
+7. How can I call copy number estimates from non-spanning/soft clip reads?
+   - While a core requirement of the HMMSTR algorithm is detecting unique flanking sequence, you can obtain copy number estimates from soft clipped reads using HMMSTR following our methods in our manuscript. Put briefly, you can arrange your inputs to target one flanking region and allow the second flanking region to end in the expected repeat. Note that this procedure will yield a rough estimate and we do plan to incorporate a more rigorous mode for non-spanning read estimates in future iterations.
 8. Can I use HMMSTR to recover motif composition?
    - HMMSTR does not currently concurrently derive motif composition, however it can be used in conjunction with other motif decomposition softwares and we do so in our in-house processing pipeline. HMMSTR returns the position of the tandem repeat in each read as well as per-read allele assignments which allows for downstream analysis on the repeat sequences.
+9. I want to make my own visualizations, how can I do this from HMMSTR outputs?
+   - All of the default visualizations are made from the outputs reported in the *_read_assignemnts.tsv file, you can use this to make your own custom figures
  </details>
