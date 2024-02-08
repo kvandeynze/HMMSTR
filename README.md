@@ -45,7 +45,6 @@ HMMSTR has 2 input modes:
 #### [targets_tsv](examples/example_input.tsv)
 
 Directly uses an input tsv with the following columns:
-
     1. `name`: the names of all targets for a given run
     2. `prefix`: the sequence directly upstream of the target repeat (200bp recommended)
     3. `repeat`: repeat motif for given target (must be on the same strand as prefix and suffix sequences)
@@ -54,7 +53,6 @@ Directly uses an input tsv with the following columns:
 #### [coordinates](panel_target_inputs/final_daTR_coords_disease_abb.txt)
 
 Uses a custom bedfile to create the targets tsv from the following columns:
-
     1. `Chromosoms`
     2. `Start coordinate`
     3. `End coordinate`
