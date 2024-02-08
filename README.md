@@ -45,19 +45,19 @@ HMMSTR has 2 input modes:
 #### [targets_tsv](examples/example_input.tsv)
 
 Directly uses an input tsv with the following columns:
-    1. `name`: the names of all targets for a given run
-    2. `prefix`: the sequence directly upstream of the target repeat (200bp recommended)
-    3. `repeat`: repeat motif for given target (must be on the same strand as prefix and suffix sequences)
-    4. `suffix`: the sequence directly downstream of the target repeat (200bp recommended)
+1. `name`: the names of all targets for a given run
+2. `prefix`: the sequence directly upstream of the target repeat (200bp recommended)
+3. `repeat`: repeat motif for given target (must be on the same strand as prefix and suffix sequences)
+4. `suffix`: the sequence directly downstream of the target repeat (200bp recommended)
     
 #### [coordinates](panel_target_inputs/final_daTR_coords_disease_abb.txt)
 
 Uses a custom bedfile to create the targets tsv from the following columns:
-    1. `Chromosoms`
-    2. `Start coordinate`
-    3. `End coordinate`
-    4. `Repeat motif`(on same strand as reference genome used)
-    5. `Target name` (optional, if not given name will be assigned as chr:start-end)
+1. `Chromosoms`
+2. `Start coordinate`
+3. `End coordinate`
+4. `Repeat motif`(on same strand as reference genome used)
+5. `Target name` (optional, if not given name will be assigned as chr:start-end)
 
 coordinates also requires the following additional positional arguments:
 1. chrom_sizes: path to chromosome sizes file corresponding to the reference genome used
