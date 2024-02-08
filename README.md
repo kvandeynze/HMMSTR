@@ -42,19 +42,21 @@ usage: hmmstr [-h] [--output_plots] [--output_labelled_seqs] [--max_peaks MAX_PE
 ```
 
 HMMSTR has 2 input modes:
-1. ```targets_tsv``` (example [here](examples/example_input.tsv)): Directly uses an input tsv with the following columns:
-    1. name: the names of all targets for a given run
-    2. prefix: the sequence directly upstream of the target repeat (200bp recommended)
-    3. repeat: repeat motif for given target (must be on the same strand as prefix and suffix sequences)
-    4. suffix: the sequence directly downstream of the target repeat (200bp recommended)
-2. ```coordinates``` (example [here](panel_target_inputs/final_daTR_coords_disease_abb.txt)): Uses a custom bedfile to create the targets tsv from the following columns:
-    1. Chromosoms
-    2. Start coordinate
-    3. End coordinate
-    4. Repeat motif (on same strand as reference genome used)
-    5. Target name (optional, if not given name will be assigned as chr:start-end)
+#### [targets_tsv](examples/example_input.tsv)
+Directly uses an input tsv with the following columns:
+    1. ```name```: the names of all targets for a given run
+    2. ```prefix```: the sequence directly upstream of the target repeat (200bp recommended)
+    3. ```repeat```: repeat motif for given target (must be on the same strand as prefix and suffix sequences)
+    4. ```suffix```: the sequence directly downstream of the target repeat (200bp recommended)
+#### [coordinates](panel_target_inputs/final_daTR_coords_disease_abb.txt)
+Uses a custom bedfile to create the targets tsv from the following columns:
+    1. ```Chromosoms```
+    2. ```Start coordinate```
+    3. ```End coordinate```
+    4. ```Repeat motif```(on same strand as reference genome used)
+    5. ```Target name``` (optional, if not given name will be assigned as chr:start-end)
 
-```coordinates``` also requires the following additional positional arguments:
+coordinates also requires the following additional positional arguments:
 1. chrom_sizes: path to chromosome sizes file corresponding to the reference genome used
 2. ref: path to the reference genome to get flanking sequences from
 3. input_flank_length: Length of the prefix and suffix to get from the reference genome, must be longer than 100bp (Default) or the ```--flanking_size``` optional parameter, (optional, default: 200)
@@ -79,21 +81,21 @@ Optionally, the user may also input all options as a text file which each input 
 ### Model Size
 |  Argument &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;  &nbsp; &nbsp; &nbsp;  &nbsp; &nbsp; &nbsp;| Description |
 |---|---|
-|--flanking_size| Integer designating the number of bases flanking the repeat to encode in the model. Must be shorter or equal in length to given prefix and suffix. Note: significant increases in flanking size will increase runtime but may increase accuracy. Longer flanking sequences are recommended for more repetitive flanking regions or regions with high similarity with respect to sequence directly flanking the repeat (default: 100, 100-200 recommended for highly repetitive regions, 30 for increased speed)|
+|--flanking_size| Integer designating the number of bases flanking the repeat to encode in the model. Must be shorter or equal in length to given prefix and suffix. Note: significant increases in flanking size will increase runtime but may increase accuracy in low complexity regions. Longer flanking sequences are recommended for regions with high similarity with respect to sequence directly flanking the repeat (default: 100, 100-200 recommended for highly repetitive regions, 30 for increased speed)|
 
 
 ### Alignment Options
 |  Argument &nbsp; &nbsp; &nbsp; | Description |
 |---|---|
-|--mode| Mode used by mappy. map-ont (Nanopore), pb (PacBio), or sr (short accurate reads, use for accurate short flanking sequence input) (default: map-ont)|
+|--mode| Mode used by mappy. map-ont (Nanopore), pb (PacBio), or sr (short accurate reads, use for short flanking sequence input) (default: map-ont)|
 |--mapq_cutoff| MapQ cutoff for prefix and suffix (default: 30, range: 0-60)|
 
 ### Peak-calling Options
 |  Argument &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;| Description |
 |---|---|
 |--max_peaks| Integer designating the maximum number of alleles to call for a given run (default: 2)|
-|--peakcalling_method| Used to override the default peak calling pipeline. Options include: gmm, kde, kde_throw_outliers (default:auto, HMMSTR chooses the best method based on the distribution of copy number per read)|
-|--discard_outliers| If passed, outliers based on count will be discarded based on quantile. If ```--filter_quantile``` not set, reads exceding the top and bottom quantile (0.25) will be discarded and marked as outliers in outputs|
+|--peakcalling_method| Used to override the default peak calling pipeline. Options include: gmm, kde, kde_throw_outliers (default:auto, HMMSTR chooses the best method based on the distribution of copy numbers per target)|
+|--discard_outliers| If passed, outliers per read-level copy number will be discarded based on quantile. If ```--filter_quantile``` not set, reads exceding the top and bottom quantile (0.25) will be discarded and marked as outliers in outputs|
 |--filter_quantile| Float designating quantile of count frequency to discard when filtering outliers (default: 0.25)
 |--flanking_like_filter| If passed, outliers determined by the likelihood of the flanking sequence will be filtered. This is an additional filter for off-targets or low quality reads|
 
@@ -107,7 +109,7 @@ Optionally, the user may also input all options as a text file which each input 
 ### Output Options
 |  Argument &nbsp; &nbsp; &nbsp; | Description |
 |---|---|
-| --output_plots | output supporting reads histogram showing how many reads were assigned to each repeat copy number per target in a single run|
+| --output_plots | output supporting reads histogram showing how many reads were assigned to each repeat copy number per target in a single run as well as the model of best fit|
 | --bootstrap | Boolean designating to output bootstraped confidence intervals for allele calls. By default, the samples are drawn from the full dataset regardless of allele.|
 | --output_labelled_seqs | Output the model path through prefix, repeat, and suffix identified per read as context_labelled.txt per target. This is useful for inspecting repeat sequences as well as how well your model fit your target of interest.|
 | --stranded_report | If set, genotypes are called for each strand separately and strand bias is reported if found.|
@@ -116,9 +118,9 @@ Optionally, the user may also input all options as a text file which each input 
 |  Argument &nbsp; &nbsp; &nbsp;  &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;| Description |
 |---|---|
 |--call_width| Decimal percentage designating confidence interval width to calculate in bootstrapping (default: 0.95)|
-|--resample_size| Number of times to resample the repeat copy number distribution during bootstrapping (default:x)|
+|--resample_size| Number of times to resample the repeat copy number distribution during bootstrapping (default:100)|
 |--allele_specific_CIs| Output allele-specific bootstrapped confidence intervals. This process separates data by assigned alleles before sampling.|
-|--allele_specific_plots| Output allele-specific histograms with model of best fit|
+|--allele_specific_plots| Output allele-specific histograms with model of best fit. Helpful when visualizing alleles with significantly different support|
 </details>
 <details>
 <summary> Advanced Options </summary>
