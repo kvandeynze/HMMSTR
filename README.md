@@ -53,7 +53,7 @@ Directly uses an input tsv with the following columns:
 #### [coordinates](panel_target_inputs/final_daTR_coords_disease_abb.txt)
 
 Uses a custom bedfile to create the targets tsv from the following columns:
-1. `Chromosoms`
+1. `Chromosomes`
 2. `Start coordinate`
 3. `End coordinate`
 4. `Repeat motif`(on same strand as reference genome used)
@@ -134,9 +134,9 @@ Optional tsv inputs to set custom model parameters.
 |  Argument &nbsp; &nbsp; &nbsp; | Description |
 |---|---|
 |--background| TSV with custom background frequencies to encode in genome states (example [here](examples/custom_background_example.txt)|
-|--E_probs| TSV with custom emission probabilities to be encoded in match states. These should correspond to the expected mismatch rate (example [here](examples/custom_emission_example.txt)|
-|--A_probs| TSV with custom transition probibilities to be encoded in the model. Column names in "P_xy" format such that 'x' is the first state type and 'y' is the state type 'x' transitions to (example [here](examples/custom_transitions_example.txt)|
-|--custom_RM| TSV with columns corresponding to a given postion in the repeat motif and rows corresponding to possible nucleotides (and deletion character ''). This is used to designate custom nucleotide occupancy per position in a given motif in case of known mosaicism (ie AAGGG vs AAAAG at the CANVAS locus). Note: this matrix will be applied to all models in a given run, it is advised you only use it in single target runs (example [here](examples/custom_RM_example.txt)|
+|--E_probs| TSV with custom emission probabilities to be encoded in match states. These should correspond to the expected mismatch rate (example [here](examples/custom_emission_example.txt))|
+|--A_probs| TSV with custom transition probibilities to be encoded in the model. Column names in "P_xy" format such that 'x' is the first state type and 'y' is the state type 'x' transitions to (example [here](examples/custom_transitions_example.txt))|
+|--custom_RM| TSV with columns corresponding to a given postion in the repeat motif and rows corresponding to possible nucleotides (and deletion character ''). This is used to designate custom nucleotide occupancy per position in a given motif in case of known mosaicism (ie AAGGG vs AAAAG at the CANVAS locus). Note: this matrix will be applied to all models in a given run, it is advised you only use it in single target runs (example [here](examples/custom_RM_example.txt))|
 
 #### Advanced Alignment Options
 Parameters to pass to Mappy during alignment step
