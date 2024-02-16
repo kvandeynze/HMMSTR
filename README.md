@@ -27,12 +27,10 @@ HMMSTR is optimized for targeted sequencing experiments and can be run with a si
   ```
 
 ## Installation
-HMMSTR is available on Pypi and Conda**
+HMMSTR is currently available on Pypi
 ```
 pip install -i https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple HMMSTR==0.1.15
 ```
-(conda install here)
-(git clone install here)
 
 ## Usage
 ```
@@ -60,9 +58,9 @@ Uses a custom bedfile to create the targets tsv from the following columns:
 5. `Target name` (optional, if not given name will be assigned as chr:start-end)
 
 coordinates also requires the following additional positional arguments:
-1. chrom_sizes: path to chromosome sizes file corresponding to the reference genome used
-2. ref: path to the reference genome to get flanking sequences from
-3. input_flank_length: Length of the prefix and suffix to get from the reference genome, must be longer than 100bp (Default) or the ```--flanking_size``` optional parameter, (optional, default: 200)
+1. `chrom_sizes`: path to chromosome sizes file corresponding to the reference genome used
+2. `ref`: path to the reference genome to get flanking sequences from
+3. `input_flank_length`: Length of the prefix and suffix to get from the reference genome, must be longer than 100bp (Default) or the ```--flanking_size``` optional parameter, (optional, default: 200)
 
 
 Optionally, the user may also input all options as a text file which each input parameter and option on its own line. An example of this can be found [here](examples/multi_test_run_input.txt). This file is also automatically output to [out_prefix]_run_input.txt as a record of the run.
