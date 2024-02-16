@@ -30,7 +30,6 @@ def read_my_file(argv):
     new_argv = []
     with open(argv,"r") as params:
         for a in params: #read each file
-            #print(a.rstrip().split(" "))
             for b in a.rstrip().split(" "):
                 new_argv.append(b)
     return new_argv

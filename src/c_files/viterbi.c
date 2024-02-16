@@ -186,7 +186,6 @@ void ViterbiLog(HMM *phmm, int T, int *O, double **delta, int **psi,int **traceb
 
                 }
 				//row t is filled, check for RDn being a better path retroactively
-				// index of last prefix, 3*prefix length + 1
 				continue_update = 1;
 				stop_early = 0;
 				//find the earliest deletion in RDn's path so we can stop before then, we don't want it to come all the way around and it shouldn't
@@ -209,8 +208,7 @@ void ViterbiLog(HMM *phmm, int T, int *O, double **delta, int **psi,int **traceb
 					traceback_dir[t][10] = 1; //update to indicate coming from a deletion
 				}
 				//check RD1 --> more complicated. If coming from RDn is more probabe than current path to RD1, change the value and all affected values UP TO RDn
-				// We cannot allow this to also change RDn because it will cause an infinite loop. Also it makes no sense to do this because it would essentially be saying the whole repeat was deleted
-				// if RD1 is changed --> check if new value creates maximum path to: RM2, RI1, and/or RD2-->RD(n-1) (this will also require checking all M and I states from these deletion states)
+				// We cannot allow this to also change RDn because it will cause an infinite loop.--> check if new value creates maximum path to: RM2, RI1, and/or RD2-->RD(n-1) (this will also require checking all M and I states from these deletion states)
 				// if at anypoint (1) RD3 is chosen as the most likely previous state and/or (2) RD1 or following deletions are chosen as the NEW path, update both tracbacks
 				// this is essentially going to be what we did above but restricted to only transitions that are done on row t 
 
