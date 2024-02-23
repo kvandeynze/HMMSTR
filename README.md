@@ -29,7 +29,7 @@ HMMSTR is optimized for targeted sequencing experiments and can be run with a si
 ## Installation
 HMMSTR is currently available on Pypi
 ```
-pip install -i https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple HMMSTR==0.1.17
+pip install HMMSTR
 ```
 
 ## Usage
