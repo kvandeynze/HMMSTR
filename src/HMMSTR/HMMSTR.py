@@ -812,9 +812,9 @@ def main():
         for file_subset in glob.glob(args.out+"*.hmm"):
             if os.path.exists(file_subset):
                 os.remove(file_subset)
-        for file_subset in glob.glob(args.out+"*labeled_seqs.txt"):
-            if os.path.exists(file_subset):
-                os.remove(file_subset)
+        # for file_subset in glob.glob(args.out+"*labeled_seqs.txt"):
+        #     if os.path.exists(file_subset):
+        #         os.remove(file_subset)
         #FIXME counts file is required for cluster only
         for file_subset in glob.glob(args.out+"*counts.txt"):
             os.remove(file_subset)
