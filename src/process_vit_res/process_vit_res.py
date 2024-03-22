@@ -1,5 +1,6 @@
 #helper functions to process viterbi outputs
 from colorama import Fore, Back, Style
+import numpy as np
 def label_states(vit_out, hidden_states):
     '''
     Function to convert output from testvit.c to a single sequence of labeled hidden states
@@ -85,8 +86,11 @@ def calc_likelihood(vit_out, pointers, labeled_seq,hidden_states, read,subset_st
     final_repeat_like = likelihood_list[pointers["S"]-1] - likelihood_list[pointers["R"]-1] #likelihood of just the repeat
 
     #get repeat coordinates per read for downstream motif analysis
-    repeat_end =pointers["S"]-1 + subset_start
-    repeat_start = pointers["R"] + subset_start
+    #FIXME this doesn't account for the fact that deletions are included in pointers and NOT subset start should be as follows (update install)
+    repeat_start = pointers["R"] + subset_start - sum(np.where(np.array(pointers["D"]) < pointers["R"], True, False))
+    repeat_end = pointers["S"] + subset_start - sum(np.where(np.array(pointers["D"]) < pointers["S"], True, False))
+    # repeat_end =pointers["S"]-1 + subset_start
+    # repeat_start = pointers["R"] + subset_start
 
     final_labels = "-".join(labeled_seq[pointers["P"]:pointers["G2"]])
     num_pd = final_labels.count('PD')
