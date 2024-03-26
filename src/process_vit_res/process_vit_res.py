@@ -31,12 +31,17 @@ def label_states(vit_out, hidden_states):
     for i,obs in enumerate(seq_list):
         labeled_seq.append(conversion[seq_list[i]])
         #check if we need to add a "pointer"
+
+        # prefix
         if  "P" in conversion[seq_list[i]] and pointers["P"] == False:
             pointers["P"] = i
+        # repeat
         if "R" in conversion[seq_list[i]] and pointers["R"] == False:
             pointers["R"] = i
+        # suffix
         if  "S" in conversion[seq_list[i]] and pointers["S"] == False:
             pointers["S"] = i
+        # genome2
         if conversion[seq_list[i]] == "G2" and pointers["G2"] == False:
             pointers["G2"] = i
         if "D" in conversion[seq_list[i]]: #get indeces of all deletions
@@ -113,7 +118,7 @@ def calc_likelihood(vit_out, pointers, labeled_seq,hidden_states, read,subset_st
     R_end = pointers["S"] - pointers["P"]
     repeats = context[R_start:R_end] #need to see if this includes last index of repeat
     return final, final_labels, repeats, context, final_repeat_like, repeat_start, repeat_end
-def count_repeats(labeled_seq, pointers,repeat_len,seq):
+def count_repeats(labeled_seq, pointers,repeat_len):
     '''
     Function to count the number of repeats in a sequence given a sequence labeled by its hidden states
 
@@ -121,18 +126,31 @@ def count_repeats(labeled_seq, pointers,repeat_len,seq):
         labeled_seq (list): hidden state annotation of query sequence
         pointers (dict): dictionary of "pointers" to the first match to prefix, repeat, and suffix
         repeat_len (int): length of target repeat
-        seq (str): read sequence
 
     Returns:
         count (int): the number of repeats identified in the query sequence
 
     '''
-    repeat_region = labeled_seq[pointers["R"]:pointers["S"]]
+
+    # if missing suffix count until the end of the read
+    if pointers["S"] == False:
+        repeat_region = labeled_seq[pointers["R"]:]
+    else:
+        repeat_region = labeled_seq[pointers["R"]:pointers["S"]]
+
+    # length of repeat region until suffix or end of read
     adjusted_length = len(repeat_region)
+        
     #count insertions to account for them in count
     for state in repeat_region:
         if state[1] == "I":
             adjusted_length -= 1
+
+    # use the modulo operator to count leftover states when read ends, then remove them to find repeat length
+    if pointers["S"] == False:
+        remainder = adjusted_length%repeat_len
+        adjusted_length -= remainder
+
     #calculate counts from adjusted length, deletions already accounted for in labeled sequence
     count = adjusted_length/repeat_len
     return count
