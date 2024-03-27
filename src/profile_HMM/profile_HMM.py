@@ -151,6 +151,7 @@ class ProfileHMM:
         self.write_HMM(hidden_states, A, E, I, out)
 
         return   
+    
     def get_emission(self,E, prefix, repeat, suffix,repeat_probs):
         '''
         Function to initialize emission probability matrix
@@ -266,6 +267,7 @@ class ProfileHMM:
                 A['PD'+str(i-1)]['PM'+str(i)] = self.transitions["P_dm"] # from previous deletion
                 A['PM'+str(i-1)]['PM'+str(i)] = self.transitions["P_mm"]
                 A['PI'+str(i-1)]['PM'+str(i)] = self.transitions["P_im"]
+                
         #prefix border transitions
         A['PD' + str(len(prefix))]['RM1'] = self.transitions["P_dm"]
         A['PD' + str(len(prefix))]['RD1'] = self.transitions["P_dd"]
@@ -295,28 +297,41 @@ class ProfileHMM:
                 A['RD'+str(i-1)]['RM'+str(i)] = self.transitions["P_dm"] # from previous deletion
                 A['RM'+str(i-1)]['RM'+str(i)] = self.transitions["P_mm"]
                 A['RI'+str(i-1)]['RM'+str(i)] = self.transitions["P_im"]
+
+                
         #border and looping transitions (I haven't looked at this yet and it probably follows some distribution but thats unclear rn)
+                
+        # Transition from end of repeat to suffix / repeat end insertion
         A['RM' + str(len(repeat))]['SM1'] = 0.42
         A['RM' + str(len(repeat))]['SD1'] = 0.01
         A['RM' + str(len(repeat))]['RI' + str(len(repeat))] = 0.015
-        #loop back from end of repeat
+        #loop back from end of repeat to start of repeat or deletion
         A['RM' + str(len(repeat))]['RM1'] = 0.54
         A['RM' + str(len(repeat))]['RD1'] = 0.015
-        #from deletion state
+
+        #from deletion state to suffix / repeat end insertion
         A['RD' + str(len(repeat))]['SD1'] = 0.002
         A['RD' + str(len(repeat))]['SM1'] = 0.43
         A['RD' + str(len(repeat))]['RI' + str(len(repeat))] = 0.004
-        #loop back from deletion
+        #loop back from deletion to start of repeat or deletion
         A['RD' + str(len(repeat))]['RD1'] = 0.004
         A['RD' + str(len(repeat))]['RM1'] = 0.56
-        #from insertion
+
+        #from insertion to suffix / repeat end insertion
         A['RI' + str(len(repeat))]['RI' + str(len(repeat))] = 0.004
         A['RI' + str(len(repeat))]['SM1'] = 0.43
         A['RI' + str(len(repeat))]['SD1'] = 0.002
-        #loop back from insertion
+        #loop back from insertion to start of repeat or deletion
         A['RI' + str(len(repeat))]['RM1'] = 0.56
         A['RI' + str(len(repeat))]['RD1'] = 0.004
 
+        # Transition to end for non through reads
+        for pos in range(len(repeat)):
+            # Repeat Match
+            A['RM' + str(pos)]['E'] = 0.001 # using pseudocount
+            A['RI' + str(pos)]['E'] = 0.001 # using pseudocount
+            A['RD' + str(pos)]['E'] = 0.001 # using pseudocount
+        
         #suffix transitions
         for i in range(1, len(suffix)+1): #all but the last Transitions
             #transitions into insertion states
