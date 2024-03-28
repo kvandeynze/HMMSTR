@@ -269,6 +269,7 @@ class Process_Read:
             #save valid regions' attributes
             # keep status of read
             read_status = self.keep_region(prefix_info, suffix_info)
+            print(f"Result of keep region {read_status}")
             if read_status[0]:
                 self.target_info[row.name] = self.get_align_info(row, prefix_info, suffix_info)
             # only prefix present
