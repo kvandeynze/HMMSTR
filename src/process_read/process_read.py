@@ -247,16 +247,20 @@ class Process_Read:
 
         # print(f"aligning targets for read: {self.seq}") # reaches this step with no issues
 
+
+        print("Assigning a target for a read")
+        
         #check if any alignemnts returned
         if isinstance(self.prefix_df, (bool)) or isinstance(self.suffix_df, (bool)): #no alignments
             print("no_alignments")
             return False #need to decide on final returns for this function still
-        
+
         #subset to only get targets that aligned according to mappy
         # candidate targets are targets where th name is present in eitehr prefix or suffix dictionary
         candidate_targets = targets_df[targets_df.name.isin(self.prefix_df.name) or targets_df.name.isin(self.suffix_df.name)] #previously sub_targ
         # the original above code assumes that the prefix is present, changed to require one of suffixes or prefixes
 
+        print(f"Candidates: {candidate_targets}")
 
         #get the best alignments per target identified (previously sub_prefixes and sub_suffixes)
         candidate_prefix_aligns = self.prefix_df.groupby('name').head(1).reset_index()
