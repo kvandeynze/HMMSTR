@@ -748,6 +748,8 @@ def main():
 
     pool_start = perf_counter()
 
+
+    '''
     #Choose a peakcalling method for allele calls
     if args.peakcalling_method == "auto":
         targets["peak_call_method"] = targets.apply(decide_method,args=(args.out, out_count_name), axis=1)
@@ -802,6 +804,8 @@ def main():
         else:
             print(geno_df)
             print("Results are not a DataFrame! Something went wrong...")
+
+        '''
     #clean up intermediates
     if not args.save_intermediates:
         for file_subset in glob.glob(args.out+"*hidden_states.txt"):
@@ -820,5 +824,7 @@ def main():
             os.remove(args.out+"_prefix.fa")
         if os.path.exists(args.out+"_suffix.fa"):
             os.remove(args.out+"_suffix.fa")
+
+    
 if __name__ == "__main__":
   main()
