@@ -145,11 +145,6 @@ class Process_Read:
         if not (isinstance(prefix_info, (bool))):
             info["suffix_align_length"] = suffix_info.alignment_length[0]
 
-
-
-
-
-
         # both prefix and suffix info are present
         if not (isinstance(prefix_info, (bool))) and not (isinstance(prefix_info, (bool))):
         # get strand and start and end coordinates
@@ -249,6 +244,9 @@ class Process_Read:
         -----------------------------------------------------------------------------------------------------
         targets_df: pandas DataFrame. DataFrame of tandem repeat target loci to compare to alignment results
         '''
+
+        print(f"aligning targets for read: {self.seq}")
+
         #check if any alignemnts returned
         if isinstance(self.prefix_df, (bool)) or isinstance(self.suffix_df, (bool)): #no alignments
             return False #need to decide on final returns for this function still
