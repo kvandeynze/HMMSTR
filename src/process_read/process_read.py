@@ -245,10 +245,11 @@ class Process_Read:
         targets_df: pandas DataFrame. DataFrame of tandem repeat target loci to compare to alignment results
         '''
 
-        print(f"aligning targets for read: {self.seq}")
+        # print(f"aligning targets for read: {self.seq}") # reaches this step with no issues
 
         #check if any alignemnts returned
         if isinstance(self.prefix_df, (bool)) or isinstance(self.suffix_df, (bool)): #no alignments
+            print("no_alignments")
             return False #need to decide on final returns for this function still
         
         #subset to only get targets that aligned according to mappy
