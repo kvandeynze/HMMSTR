@@ -257,7 +257,7 @@ class Process_Read:
 
         #subset to only get targets that aligned according to mappy
         # candidate targets are targets where th name is present in eitehr prefix or suffix dictionary
-        candidate_targets = targets_df[(targets_df.name.isin(self.prefix_df.name)) or (targets_df.name.isin(self.suffix_df.name))] #previously sub_targ
+        candidate_targets = targets_df[(targets_df.name.isin(self.prefix_df.name)) | (targets_df.name.isin(self.suffix_df.name))] #previously sub_targ
         # the original above code assumes that the prefix is present, changed to require one of suffixes or prefixes
 
         print(f"Candidates: {candidate_targets}")
