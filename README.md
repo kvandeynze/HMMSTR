@@ -176,10 +176,10 @@ Parameters to use to test different clustering methods on your data
   3. `strand`: the strand of the read relative to the input sequence or reference
   4. `align_score`: combined mapq of prefix and suffix sequences
   5. `neg_log_likelihood`: the negative-log-likelihood of the Viterbi path the read takes through the target model. Note: this is for the subsetted read in the default case, not the full read sequence
-  6. `subset_liekihood`: the negative-log-likelihood of the sequence labelled as prefix, repeat, and suffix states
+  6. `subset_likelihood`: the negative-log-likelihood of the sequence labelled as prefix, repeat, and suffix states
   7. `repeat_likelihood`: the negative-log-likelihood of the identified repeat sequence
   8. `repeat_start`: the start index of the repeat relative to the full input read string
-  9. `repeat_start`: the end index of the repeat relative to the full input read string
+  9. `repeat_end`: the end index of the repeat relative to the full input read string
   10. `align_start`: the start index of the start of the upstream alignment (either prefix or suffix dependent on the strand)
   11. `align_end`: the end index of the end of the downstream alignment (either prefix or suffix dependent on the strand)
   12. `counts`: the number of repeat copies called in the given read
