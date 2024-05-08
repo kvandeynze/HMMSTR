@@ -11,7 +11,7 @@ HMMSTR is optimized for targeted sequencing experiments and can be run with a si
 
 Our preprint is now available on medRxiv [here](https://www.medrxiv.org/content/10.1101/2024.05.01.24306681v1)
 ## Dependencies
-* Python >= 3.8
+* Python >= 3.8.17
 * colorama
 * numpy
 * pandas
