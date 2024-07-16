@@ -9,8 +9,9 @@ HMMSTR calls tandem repeat copy number from raw, long-read, sequencing reads and
 
 HMMSTR is optimized for targeted sequencing experiments and can be run with a single or multiple target regions/sequences in a global-alignment and reference free format.
 
+Our preprint is now available on medRxiv [here](https://www.medrxiv.org/content/10.1101/2024.05.01.24306681v1)
 ## Dependencies
-* Python >= 3.8
+* Python >= 3.8.17
 * colorama
 * numpy
 * pandas
@@ -176,10 +177,10 @@ Parameters to use to test different clustering methods on your data
   3. `strand`: the strand of the read relative to the input sequence or reference
   4. `align_score`: combined mapq of prefix and suffix sequences
   5. `neg_log_likelihood`: the negative-log-likelihood of the Viterbi path the read takes through the target model. Note: this is for the subsetted read in the default case, not the full read sequence
-  6. `subset_liekihood`: the negative-log-likelihood of the sequence labelled as prefix, repeat, and suffix states
+  6. `subset_likelihood`: the negative-log-likelihood of the sequence labelled as prefix, repeat, and suffix states
   7. `repeat_likelihood`: the negative-log-likelihood of the identified repeat sequence
   8. `repeat_start`: the start index of the repeat relative to the full input read string
-  9. `repeat_start`: the end index of the repeat relative to the full input read string
+  9. `repeat_end`: the end index of the repeat relative to the full input read string
   10. `align_start`: the start index of the start of the upstream alignment (either prefix or suffix dependent on the strand)
   11. `align_end`: the end index of the end of the downstream alignment (either prefix or suffix dependent on the strand)
   12. `counts`: the number of repeat copies called in the given read
@@ -248,7 +249,7 @@ Allele 1           |  Allele 2           |  Allele 3
    <summary> Repeat Expansion Panel </summary>
    
    ### Repeat Expansion Panel
-   HMMSTR was designed as a companion tandem repeat caller for our repeat expansion panel as described in our manuscript (<- link). While HMMSTR performs optimally at a 100bp prefix and suffix model across all targets, in practice some targets do have more optimal model sizes based on their sequence context. For this reason, we provide [input target files](panel_target_inputs) (both coordinates and tsv inputs) separated by optimal model sizes. Below is an example of how to run one set of our targets (targets with 100bp flanking sequence model as their optimal model) in ```coordinates```.
+   HMMSTR was designed as a companion tandem repeat caller for our repeat expansion panel as described in our [manuscript](https://www.medrxiv.org/content/10.1101/2024.05.01.24306681v1). While HMMSTR performs optimally at a 100bp prefix and suffix model across all targets, in practice some targets do have more optimal model sizes based on their sequence context. For this reason, we provide [input target files](panel_target_inputs) (both coordinates and tsv inputs) separated by optimal model sizes. Below is an example of how to run one set of our targets (targets with 100bp flanking sequence model as their optimal model) in ```coordinates```.
 
    Run with ```coordinates``` input and all default parameters except ```--mapq_cutoff``` (we want to be strict with reads we accept)
    ```
@@ -285,7 +286,7 @@ If there is sufficient coverage across all alleles in the run, this is not an is
 6. Can I run HMMSTR on whole genome sequencing data?
    - HMMSTR is designed for targeted sequencing data and is not optimized for WGS data. However, if you would like to use HMMSTR to genotype specific targets from a WGS dataset we recommend you subset your dataset to only include regions of interest using ``` samtools view ``` then converting the reads back to fasta or fastq format. This will improve the specificity and runtime of the genotyping.
 7. How can I call copy number estimates from non-spanning/soft clip reads?
-   - While a core requirement of the HMMSTR algorithm is detecting unique flanking sequence, you can obtain copy number estimates from soft clipped reads using HMMSTR following our methods in our manuscript. Put briefly, you can arrange your inputs to target one flanking region and allow the second flanking region to end in the expected repeat. Note that this procedure will yield a rough estimate and we do plan to incorporate a more rigorous mode for non-spanning read estimates in future iterations.
+   - While a core requirement of the HMMSTR algorithm is detecting unique flanking sequence, you can obtain copy number estimates from soft clipped reads using HMMSTR following our methods in our [manuscript](https://www.medrxiv.org/content/10.1101/2024.05.01.24306681v1). Put briefly, you can arrange your inputs to target one flanking region and allow the second flanking region to end in the expected repeat. Note that this procedure will yield a rough estimate and we do plan to incorporate a more rigorous mode for non-spanning read estimates in future iterations.
 8. Can I use HMMSTR to recover motif composition?
    - HMMSTR does not currently concurrently derive motif composition, however it can be used in conjunction with other motif decomposition softwares and we do so in our in-house processing pipeline. HMMSTR returns the position of the tandem repeat in each read as well as per-read allele assignments which allows for downstream analysis on the repeat sequences.
 9. I want to make my own visualizations, how can I do this from HMMSTR outputs?
