@@ -11,8 +11,11 @@ requirements:
     - {{ compiler('c') }}
     - cython
     - setuptools
+    - glib
+    - pkg-config
   host:
     - python >=3.8.17
+    - glib
     - pip
     - colorama
     - numpy
