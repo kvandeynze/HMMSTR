@@ -44,7 +44,7 @@ setup(
     python_requires='>=3.8.17',
     packages=["HMMSTR","GMM_stats","HMMSTR_utils","c_files","process_vit_res","profile_HMM","process_read","KDE_stats"],
     ext_modules=extensions,
-    install_requires=['colorama','numpy','pandas','pickleshare','scikit-learn','scipy','seaborn','importlib-resources','mappy','pybedtools','pysam'],
+    install_requires=['colorama','numpy','pandas','pickleshare','scikit-learn','scipy','seaborn','importlib-resources','mappy','pysam'],
     zip_safe=False,
     scripts=['src/c_files/test_hmm_cython.py'],
     # package_data = {

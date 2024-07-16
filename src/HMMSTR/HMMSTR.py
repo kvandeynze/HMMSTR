@@ -16,7 +16,6 @@ from HMMSTR_utils.HMMSTR_utils import *
 from process_read.process_read import Process_Read
 from GMM_stats.GMM_stats import GMMStats
 from KDE_stats.KDE_stats import KDE_cluster
-from pybedtools import BedTool
 import pysam
 import mappy
 import queue  # imported for using queue.Empty exception
@@ -119,32 +118,7 @@ def build_all(curr_target, out, background,alphabet,transitions,mismatch_probs, 
     curr_hmm.build_profile("forward") #builds and writes forward ProfileHMM object
     curr_hmm.build_profile("reverse") #builds and writes reverse ProfileHMM object
     return
-def check_overlap(bam_file, bed_file, read_id):
-    # Create a BedTool object for the BAM file and the BED file
-    bam = BedTool(bam_file)
-    bed = BedTool(bed_file)
 
-    # Fetch the read from the BAM file
-    read = bam.filter(lambda b: b.qname == read_id).saveas()
-
-    # Check if the read overlaps any region in the BED file
-    overlapping_regions = bed.intersect(read, u=True)
-
-    # If there are any overlapping regions, return the first one
-    if len(overlapping_regions) > 0:
-        return str(overlapping_regions[0])
-
-    # If there are no overlapping regions, return None
-    return None
-def process_returned_value(value):
-    fields = value.split('\t')
-
-    if len(fields) == 4:
-        return f"{fields[0]}:{fields[1]}-{fields[2]}"
-    elif len(fields) == 5:
-        return fields[4]
-    else:
-        return None
     
 def fetch_reads(bam_file, regions, mapq_cutoff, *args):
     '''

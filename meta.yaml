@@ -26,7 +26,6 @@ requirements:
     - seaborn
     - importlib-resources
     - mappy
-    - pybedtools
     - pysam
   run:
     - python >=3.8.17
@@ -39,7 +38,6 @@ requirements:
     - seaborn
     - importlib-resources
     - mappy
-    - pybedtools
     - pysam
 
 test:
