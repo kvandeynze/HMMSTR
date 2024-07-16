@@ -146,6 +146,7 @@ class KDE_cluster:
             flanking_filtered, flanking_outliers = remove_flanking_outliers(self.data)
             #check if we also filtered outliers so we can do both
             if self.discard_outliers:
+                filtered, outliers = remove_outlier_IQR(flanking_filtered.counts,filter_quantile) #filter outliers
                 a = np.array(flanking_filtered[flanking_filtered.counts.isin(filtered.unique())].counts).reshape(-1,1) #use reads that are both in both of our filtered sets
             else:
                 a = np.array(flanking_filtered.counts).reshape(-1,1)
@@ -168,7 +169,7 @@ class KDE_cluster:
                 allele_calls.update({"A"+str(k)+":SD":-1 for k in range(1,max_k+1)})
                 allele_calls.update({"A"+str(k)+":supporting_reads":-1 for k in range(1,max_k+1)})
                 allele_calls["bandwidth"] = -1
-                return clusters,allele_calls , outliers
+                return clusters,allele_calls , outliers, flanking_outliers
 
             print("Switching to a constant bandwidth=0.5")
             kde = KernelDensity( bandwidth=0.5,kernel=kernel).fit(a)
@@ -250,7 +251,7 @@ class KDE_cluster:
             allele_calls.update({"A"+str(k)+":SD":0 for k in k_clusters})
             allele_calls.update({"A"+str(k)+":median":0 for k in k_clusters})
             allele_calls.update({"A"+str(k)+":mode":0 for k in k_clusters})
-            return clusters,allele_calls , outliers
+            return clusters,allele_calls , outliers, flanking_outliers
 
         if output_plots:
             if len(mi) == 0:
@@ -369,6 +370,8 @@ class KDE_cluster:
             assignemnts and if the count was an outlier
         '''
         count_assignemnts = {}
+        if clusters == -1:
+            return pd.DataFrame(columns =['read_id', 'strand', 'align_score', 'neg_log_likelihood', 'subset_likelihood', 'repeat_likelihood', 'repeat_start', 'repeat_end', 'align_start', 'align_end', 'counts', 'freq', 'cluster_assignments', 'outlier', 'flanking_outlier'])
         for cluster in clusters:
             for curr in clusters[cluster]:
                 count_assignemnts[curr] = cluster

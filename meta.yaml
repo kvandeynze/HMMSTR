@@ -1,0 +1,50 @@
+package:
+  name: hmmstr
+  version: 1.0.2
+
+source:
+  url: https://github.com/Boyle-Lab/HMMSTR/archive/refs/tags/v1.0.2.tar.gz
+
+build:
+  number: 0
+  script: "{{ PYTHON }} -m pip install . --no-deps -vv"
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - cython
+    - setuptools
+  host:
+    - python >=3.8.17
+    - pip
+    - colorama
+    - numpy
+    - pandas
+    - pickleshare
+    - scikit-learn
+    - scipy
+    - seaborn
+    - importlib-resources
+    - mappy
+    - pysam
+  run:
+    - python >=3.8.17
+    - colorama
+    - numpy
+    - pandas
+    - pickleshare
+    - scikit-learn
+    - scipy
+    - seaborn
+    - importlib-resources
+    - mappy
+    - pysam
+
+test:
+  commands:
+    - hmmstr --help
+
+about:
+  home: https://github.com/Boyle-Lab/HMMSTR
+  license: MIT
+  summary: "HMMSTR is a bioinformatics software package for calling tandem repeat copy number from raw, long-read, sequencing reads."

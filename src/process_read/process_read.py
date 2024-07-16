@@ -10,7 +10,8 @@ from process_vit_res.process_vit_res import *
 class Process_Read:
 
     def __init__(self, header, seq, cutoff=30, mode = "map-ont", out = ".", k = None, w = None, use_full_seq = False):
-        self.read_id = header.split(" ")[0][1:]
+        # self.read_id = header.split(" ")[0][1:]
+        self.read_id = header #changed so we can just pass the read_id from different sources
         self.seq = seq
         self.cutoff = cutoff
         self.mode = mode
@@ -28,7 +29,7 @@ class Process_Read:
             print("Suffix fasta file does not exist! Please check output path")
         #call alignment and such to set other fields? <-- you can set fields in class methods without initializing them
 
-    def align_mappy(self):
+    def align_mappy(self,target=None):
         '''
         This function aligns the prefixes and suffixes to the current read to assign it to the most likely target.
         '''
@@ -50,6 +51,10 @@ class Process_Read:
             for hit in aligner.map(seq):
                 if hit.mapq < self.cutoff:
                     continue
+                #check if we are using bam file assignments, if we are only accept alignments to that target prefix 
+                if target is not None:
+                    if name != target:
+                        continue
                 prefix_dict["name"].append(name)
                 prefix_dict["prefix_start"].append(hit.r_st)
                 prefix_dict["prefix_end"].append(hit.r_en)
@@ -62,6 +67,9 @@ class Process_Read:
             for hit in aligner.map(seq):
                 if hit.mapq < self.cutoff:
                     continue
+                if target is not None:
+                    if name != target:
+                        continue
                 suffix_dict["name"].append(name)
                 suffix_dict["suffix_start"].append(hit.r_st)
                 suffix_dict["suffix_end"].append(hit.r_en)
@@ -186,6 +194,7 @@ class Process_Read:
         '''
         #check if any alignemnts returned
         if isinstance(self.prefix_df, (bool)) or isinstance(self.suffix_df, (bool)): #no alignments
+            self.target_info = {}
             return False #need to decide on final returns for this function still
         #subset to only get targets that aligned according to mappy
         candidate_targets = targets_df[targets_df.name.isin(self.prefix_df.name)] #previously sub_targ
@@ -222,7 +231,7 @@ class Process_Read:
         '''
         #loop across all identified targets
         #if no targets, return
-        if self.target_info == {}:
+        if self.target_info == {} or self.target_info is None:
             return False
         for name in self.target_info.keys():
             #choose hmm to use based on strand of target

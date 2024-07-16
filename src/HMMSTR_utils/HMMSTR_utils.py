@@ -1,6 +1,7 @@
 import pandas as pd
 import mappy
 import numpy as np
+import pysam
 def rev_comp(strand):
     '''
     Get the reverse complement of a given sequence
@@ -245,5 +246,65 @@ def sort_outputs(curr_row, max_peaks,bootstrap,allele_specif_CIs, stranded=False
   column_names_in_order.append("peak_calling_method")
   new_row = curr_row[column_names_in_order].copy()
   new_row_final = sort_alleles(curr_row, new_row,bootstrap, allele_specif_CIs)
-
   return new_row_final
+
+def sort_read_assign_alleles(read_assign, geno, max_k):
+    '''
+    Sorts the alleles in the read_assign file to match the geno file first.
+    This function now takes max_k as an argument to dynamically handle the number of alleles.
+    '''
+    # Generate the list of allele median columns dynamically based on max_k
+    allele_columns = [f"A{i}:median" for i in range(1, max_k + 1)]
+    
+    # Calculate medians for read_assign
+    read_assign_allele_medians = read_assign.groupby(["name", "cluster_assignments"]).counts.median().reset_index()
+    
+    # Melt the geno dataframe to long format for easier comparison, using the dynamically generated allele columns
+    geno_allele_medians = geno.melt(id_vars=["name"], value_vars=allele_columns, var_name="allele", value_name="median")
+    geno_allele_medians["allele"] = geno_allele_medians["allele"].str.extract('A(\d+):median').astype(int)
+    
+    # Copy read_assign to avoid modifying the original dataframe
+    new_read_assign = read_assign.copy()
+    
+    # Iterate over unique names
+    unique_names = read_assign["name"].unique()
+    for name in unique_names:
+        geno_allele_medians_subset = geno_allele_medians[geno_allele_medians["name"] == name]
+        for allele in read_assign["cluster_assignments"].dropna().unique():
+            read_median = read_assign[(read_assign["name"] == name) & (read_assign["cluster_assignments"] == allele)].counts.median()
+            closest_allele = geno_allele_medians_subset.iloc[(geno_allele_medians_subset["median"]-read_median).abs().argsort()[:1]]["allele"].to_list()[0]
+            new_read_assign["cluster_assignments"] = np.where((read_assign["name"] == name) & (read_assign["cluster_assignments"] == allele), closest_allele, new_read_assign["cluster_assignments"])
+    
+    return new_read_assign
+
+def get_read_ids(bam_file, chrom,start,end,region_name):
+    # Open the BAM file
+    with pysam.AlignmentFile(bam_file, "rb") as bam:
+        # Get all reads that align to the specified region
+        reads = bam.fetch(chrom, start,end)
+        # Get the IDs of the reads
+        read_ids = {read.query_name:region_name for read in reads}
+    return read_ids
+def bam_assign(bam_file,target_coordinates):
+    '''
+    This function assigns reads to targets based on their alignment to the reference genome
+    this mode will be optional and fo now its an additional rather than an alternative input
+    will be used to pre-assign reads from global alignment to targets to avoid misassignemnt during WGS runs
+    or runs with a large number of targets with non-unique direct flanking sequence
+    This mode will also only allow for one-to-one assignment while local alignment only allows multiple
+    which is suboptimal for a loarge number of targets in this iteration of the software
+    '''
+    #for every target region, get all reads that align to it and add them to a dictionary of read_ids to target names
+    targets = pd.read_csv(target_coordinates,sep="\t", header=None)
+    #check if there is a 5th column in the bed file
+    if len(targets.columns) == 5:
+        targets.columns = ["chr","start","end","repeat","name"]
+    else:
+        targets.columns = ["chr","start","end","repeat"]
+        targets["name"] = targets.chr + ":" +targets.start.astype(str) + "-" + targets.end.astype(str)
+    #for every target in targets, get the reads that align to it
+    read_ids = {}
+    for target in targets.itertuples():
+        read_ids.update(get_read_ids(bam_file, target.chr ,target.start, target.end,target.name))
+    return read_ids
+
