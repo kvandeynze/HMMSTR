@@ -5,8 +5,9 @@ import os, glob
 import gzip
 #import numpy as np
 import pandas as pd
-from time import perf_counter
+from time import perf_counter, sleep
 import multiprocessing as mp
+from multiprocessing import Pool, Queue, Process, Manager, Semaphore
 import pickle as pkl
 import sys
 #custom imports
@@ -15,6 +16,11 @@ from HMMSTR_utils.HMMSTR_utils import *
 from process_read.process_read import Process_Read
 from GMM_stats.GMM_stats import GMMStats
 from KDE_stats.KDE_stats import KDE_cluster
+from pybedtools import BedTool
+import pysam
+import mappy
+import queue  # imported for using queue.Empty exception
+
 
 class LoadFromFile (argparse.Action):
     #for reading from input file instead of command line
@@ -113,7 +119,60 @@ def build_all(curr_target, out, background,alphabet,transitions,mismatch_probs, 
     curr_hmm.build_profile("forward") #builds and writes forward ProfileHMM object
     curr_hmm.build_profile("reverse") #builds and writes reverse ProfileHMM object
     return
-def process_read(header,seq,hmm_file,rev_hmm_file,hidden_states,hidden_states_rev,out,targets, build_pre, mode, cutoff, k, w, use_full_seq, flanking_size,output_labelled_seqs):
+def check_overlap(bam_file, bed_file, read_id):
+    # Create a BedTool object for the BAM file and the BED file
+    bam = BedTool(bam_file)
+    bed = BedTool(bed_file)
+
+    # Fetch the read from the BAM file
+    read = bam.filter(lambda b: b.qname == read_id).saveas()
+
+    # Check if the read overlaps any region in the BED file
+    overlapping_regions = bed.intersect(read, u=True)
+
+    # If there are any overlapping regions, return the first one
+    if len(overlapping_regions) > 0:
+        return str(overlapping_regions[0])
+
+    # If there are no overlapping regions, return None
+    return None
+def process_returned_value(value):
+    fields = value.split('\t')
+
+    if len(fields) == 4:
+        return f"{fields[0]}:{fields[1]}-{fields[2]}"
+    elif len(fields) == 5:
+        return fields[4]
+    else:
+        return None
+    
+def fetch_reads(bam_file, regions, mapq_cutoff, *args):
+    '''
+    Function to fetch reads from a BAM file given a list of regions
+    '''
+    with pysam.AlignmentFile(bam_file, "rb") as bam:
+        for region in regions:
+            for read in bam.fetch(region[0],region[1], region[2]):
+                if read.mapping_quality >= mapq_cutoff:
+                    seq = mappy.revcomp(read.query_sequence) if read.is_reverse else read.query_sequence
+                    read_id = read.query_name
+                    #check if name for region is given, if it is, region is name given in regions tuple (4th element), if no 4th element, region is the string of the region
+                    if len(region) > 3:
+                        region_name = region[3]
+                    else:
+                        region_name = f'{region[0]}:{region[1]}-{region[2]}'
+                    yield (read_id, seq, region_name) + args
+
+def worker(args):
+    # print('Worker function called')  # Add this line
+    try:
+        read_id, seq, region, hmm_file, rev_hmm_file, hidden_states, hidden_states_rev, out, targets, build_pre, mode, mapq_cutoff, k, w, use_full_read, flanking_size, output_labelled_seqs, coords_file = args
+        # print('Calling process_read')  # Add this line
+        process_read(read_id, seq, hmm_file, rev_hmm_file, hidden_states, hidden_states_rev, out, targets, build_pre, mode, mapq_cutoff, k, w, use_full_read, flanking_size, output_labelled_seqs, region, coords_file)
+        return True
+    except Exception as e:
+        print(f'Exception in worker function: {e}')  # Add this line
+def process_read(header,seq,hmm_file,rev_hmm_file,hidden_states,hidden_states_rev,out,targets, build_pre, mode, cutoff, k, w, use_full_seq, flanking_size,output_labelled_seqs,region=None, coord_file=None):
     '''
     Wrapper function to call all Process_Read methods. This will initialize all operations
     for a given read including (1) alignment (2) target identification and filtering 
@@ -136,13 +195,22 @@ def process_read(header,seq,hmm_file,rev_hmm_file,hidden_states,hidden_states_re
     w: int. Minimizer window size to be passed to mappy
     use_full_seq: bool. Override to supress subsetting read sequence before Viterbi
     output_labelled_seqs: bool. Output labelled sequence output by Viterbi to a text file.
+    region: str. Region this read mapped to, if known from bam file
+    coord_file: str. Path to file containing coordinates for reads to be processed. Applicable in case of bam input.
     
     Returns
     ------------------------------------------------------------------------------------------------
     None, all outputs written to out
     '''
-    curr_read = Process_Read(header, seq, cutoff, mode, out, k,w, use_full_seq)
-    curr_read.align_mappy() #sets prefix_df and suffix_df fields for read
+    #check if we are reading input from a bam file or a fastx file
+    if coord_file is not None:
+        read_id = header
+        target = region
+    elif coord_file is None:
+        read_id = header.split(" ")[0][1:]
+        target= None
+    curr_read = Process_Read(read_id, seq, cutoff, mode, out, k,w, use_full_seq)
+    curr_read.align_mappy(target) #sets prefix_df and suffix_df fields for read
 
     curr_read.assign_targets(targets) #sets target_info for current read, this is a dictionary of keys=target name and values=info, all information needed for the target
     #The check for no assigned targets is in run_vit
@@ -304,7 +372,7 @@ def call_peaks(row, out, out_count_name, plot_hists, max_peaks, filter_outliers=
         cols = allele_calls_series.index.tolist()
         cols.sort()
         final = allele_calls_series[cols]
-        return final 
+        return final
         
     else:#GMM is the only other option
         #check existence of count file, may not exist if no reads identified for a given target
@@ -369,7 +437,7 @@ def call_peaks(row, out, out_count_name, plot_hists, max_peaks, filter_outliers=
         assignments["name"] = gmm_stats.name
         assignments["peak_calling_method"] = decision
         assignments["cluster_assignments"] = assignments["cluster_assignments"]+1
-    
+
         if flanking_like_filter:
             assignments[['name','read_id','strand', 'align_score','neg_log_likelihood', 'subset_likelihood', 'repeat_likelihood','repeat_start', 'repeat_end', 'align_start', 'align_end','counts', 'freq','cluster_assignments',"outlier","flanking_outlier","peak_calling_method"]].to_csv(out + "_read_assignments.tsv", sep="\t", header=None,index=False, mode="a")
         else:
@@ -581,7 +649,7 @@ def main():
 
     #same as above but for targets_tsv
     parser.add_argument(dest ="out",type=str, help='Output prefix including directory path')
-    parser.add_argument(dest = "inFile", type=str, help= 'Sequence to search and annotate in fasta or fastq, gzipped accepted')
+    parser.add_argument(dest = "inFile", type=str, help= 'Sequence to search and annotate in fasta or fastq, gzipped accepted. Bam files accepted in coordinate mode.')
 
     #Optional output options
     parser.add_argument("--output_plots",help="Output plots, default outputs supporting read histograms and model of best fit plots per target", action='store_true')
@@ -628,6 +696,7 @@ def main():
     parser.add_argument("--custom_RM", type=str, help= 'TSV of custom repeat match state probability matrix, see format specifications, used for motif mosacism, single target only', default=None)
     parser.add_argument("--hmm_pre", type=str,help="Prefix for files produced by build function, use if running the same targets across multiple input files. Only compatible with --save_intermediates option from previous run")
 
+
     #check input to see if file or command line was used
     if len(sys.argv) != 2:
         args = parser.parse_args()
@@ -669,10 +738,17 @@ def main():
         targets = generate_input_sheet(args.coords_file, args.chrom_sizes_file, args.ref, args.input_flank_length)
         print("Inputs generated from coordinates! Saving target inputs to %s..."%(args.out+"_inputs.tsv"))
         targets.to_csv(args.out + "_inputs.tsv", sep="\t",index=False)
-    else:
+
+
+    if os.path.exists(args.inFile) == False:
+        print("Infile file does not exist, exiting...")
+        return
+    if args.subcommand == 'targets_tsv':
         #read in targets
         print("Target tsv input selected! Reading input from  %s..."%(args.targets))
         targets = pd.read_csv(args.targets, sep="\t")
+    else:
+        print("Targets generated from coordinates. Reading in target inputs from %s..."%(args.out + "_inputs.tsv"))
     #convert custom inputs
     if args.E_probs is not None:
         E_probs = read_model_params(args.E_probs,"emissions")
@@ -722,18 +798,31 @@ def main():
         pool = mp.Pool(processes=args.cpus)
 
         #check input file type and pass to appropriate parser
+        #bam file input
+        if args.subcommand == 'coordinates' and args.inFile.endswith('.bam'): # check if bam infile
+            with open(args.coords_file, 'r') as f:
+                num_columns = len(f.readline().split())
+                if num_columns == 4:
+                    regions = [(line.split()[0], int(line.split()[1]), int(line.split()[2])) for line in f] #FIXME this current implementation uses the coordinates from the bed file to get regions and ignores names (if provided), this will break in process read since we write our outputs in terms of names, thus currently only compatible with no names given
+                elif num_columns == 5:
+                    regions = [(line.split()[0], int(line.split()[1]), int(line.split()[2]),line.split()[4]) for line in f] #names are given and these will correspond to the outputs and model names
+            pool.imap(worker, fetch_reads(args.inFile, regions, args.mapq_cutoff, hmm_file, rev_hmm_file, hidden_states, hidden_states_rev, args.out, targets, build_pre, args.mode, args.mapq_cutoff, args.k, args.w, args.use_full_read, args.flanking_size, args.output_labelled_seqs, args.coords_file), chunksize=10) #10 for now, ran faster than args.cpus
+        elif args.subcommand == 'targets_tsv' and args.inFile.endswith('bam'): #not currently allowed
+            print("Bam file input not allowed with targets_tsv input, please run with coordinates input or fast(a/q) infile. exiting...")
+            return
         #check if compressed
-        if args.inFile.endswith('gz'):
-            #gzipped file
-            if args.inFile.endswith("fasta.gz") or args.inFile.endswith("fa.gz"): #fasta file
-                [pool.apply_async(process_read, args=(header,seq,hmm_file,rev_hmm_file,hidden_states,hidden_states_rev,args.out,targets, build_pre, args.mode, args.mapq_cutoff, args.k, args.w, args.use_full_read, args.flanking_size, args.output_labelled_seqs)) for header, seq, bool in read_fasta(gzip.open(args.inFile,'rt'))]
-            elif args.inFile.endswith("fastq.gz") or args.inFile.endswith("fq.gz"): #fastq
-                [pool.apply_async(process_read, args=(header,seq,hmm_file,rev_hmm_file,hidden_states,hidden_states_rev,args.out,targets, build_pre, args.mode, args.mapq_cutoff, args.k, args.w, args.use_full_read, args.flanking_size,args.output_labelled_seqs)) for header, seq, bool in read_fastq(gzip.open(args.inFile,'rt'))]
         else:
-            if args.inFile.endswith('a'): #fasta file
-                [pool.apply_async(process_read, args=(header,seq,hmm_file,rev_hmm_file,hidden_states,hidden_states_rev,args.out,targets, build_pre, args.mode, args.mapq_cutoff, args.k, args.w, args.use_full_read,args.flanking_size,args.output_labelled_seqs)) for header, seq, bool in read_fasta(open(args.inFile))]
-            elif args.inFile.endswith('q'): #fastq
-                [pool.apply_async(process_read, args=(header,seq,hmm_file,rev_hmm_file,hidden_states,hidden_states_rev,args.out,targets, build_pre, args.mode, args.mapq_cutoff, args.k, args.w, args.use_full_read,args.flanking_size,args.output_labelled_seqs)) for header, seq, bool in read_fastq(open(args.inFile))]
+            if args.inFile.endswith('gz'):
+                #gzipped file
+                if args.inFile.endswith("fasta.gz") or args.inFile.endswith("fa.gz"): #fasta file
+                    [pool.apply_async(process_read, args=(header,seq,hmm_file,rev_hmm_file,hidden_states,hidden_states_rev,args.out,targets, build_pre, args.mode, args.mapq_cutoff, args.k, args.w, args.use_full_read, args.flanking_size, args.output_labelled_seqs)) for header, seq, bool in read_fasta(gzip.open(args.inFile,'rt'))]
+                elif args.inFile.endswith("fastq.gz") or args.inFile.endswith("fq.gz"): #fastq
+                    [pool.apply_async(process_read, args=(header,seq,hmm_file,rev_hmm_file,hidden_states,hidden_states_rev,args.out,targets, build_pre, args.mode, args.mapq_cutoff, args.k, args.w, args.use_full_read, args.flanking_size,args.output_labelled_seqs)) for header, seq, bool in read_fastq(gzip.open(args.inFile,'rt'))]
+            else:
+                if args.inFile.endswith('a'): #fasta file
+                    [pool.apply_async(process_read, args=(header,seq,hmm_file,rev_hmm_file,hidden_states,hidden_states_rev,args.out,targets, build_pre, args.mode, args.mapq_cutoff, args.k, args.w, args.use_full_read,args.flanking_size,args.output_labelled_seqs)) for header, seq, bool in read_fasta(open(args.inFile))]
+                elif args.inFile.endswith('q'): #fastq
+                    [pool.apply_async(process_read, args=(header,seq,hmm_file,rev_hmm_file,hidden_states,hidden_states_rev,args.out,targets, build_pre, args.mode, args.mapq_cutoff, args.k, args.w, args.use_full_read,args.flanking_size,args.output_labelled_seqs)) for header, seq, bool in read_fastq(open(args.inFile))]
         pool.close()
         pool.join()
         pool_end = perf_counter()
@@ -767,10 +856,14 @@ def main():
 
         #call genotypes with assigned or given peakcalling method
         geno_df = targets.apply(call_peaks, args=(args.out, out_count_name, args.output_plots,args.max_peaks,args.discard_outliers,args.filter_quantile,args.bootstrap, args.call_width, args.resample_size,args.allele_specific_plots,args.allele_specific_CIs, args.bandwidth,args.kernel,args.flanking_like_filter), axis=1)
+        #read resulting read_assignments for sorting
+        read_assignments = pd.read_csv(args.out + "_read_assignments.tsv", sep="\t")
         #check if valid genotype output
-        if isinstance(geno_df, pd.DataFrame):
+        if isinstance(geno_df, pd.DataFrame) and isinstance(read_assignments, pd.DataFrame):
             #sort outputs
             geno_df_final = geno_df.apply(sort_outputs, args=(args.max_peaks,args.bootstrap,args.allele_specific_CIs), axis=1)
+            read_assignments_final = sort_read_assign_alleles(read_assignments, geno_df_final, args.max_peaks)
+            read_assignments_final.to_csv(args.out + "_read_assignments.tsv", sep="\t", index=False)
             geno_df_final.to_csv(args.out + "_genotype_calls.tsv",sep="\t",index=False)
             pool_end = perf_counter()
             print("Genotyping run done! Took: ", pool_end-pool_start)
