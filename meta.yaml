@@ -5,9 +5,6 @@ package:
 source:
   url: https://github.com/Boyle-Lab/HMMSTR/archive/refs/tags/v1.0.2.tar.gz
 
-build:
-  number: 0
-  script: "{{ PYTHON }} -m pip install . --no-deps -vv"
 
 requirements:
   build:
