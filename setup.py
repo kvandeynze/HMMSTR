@@ -40,7 +40,7 @@ except ImportError:
 
 setup(
     name="HMMSTR",
-    version="1.0.2",
+    version="1.0.3",
     python_requires='>=3.8.17',
     packages=["HMMSTR","GMM_stats","HMMSTR_utils","c_files","process_vit_res","profile_HMM","process_read","KDE_stats"],
     ext_modules=extensions,
