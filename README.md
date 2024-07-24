@@ -11,7 +11,7 @@ HMMSTR is optimized for targeted sequencing experiments and can be run with a si
 
 Our preprint is now available on medRxiv [here](https://www.medrxiv.org/content/10.1101/2024.05.01.24306681v1)
 ## Dependencies
-* Python >= 3.8.17
+* Python >= 3.8.17, < 3.12
 * colorama
 * numpy
 * pandas
@@ -28,11 +28,17 @@ Our preprint is now available on medRxiv [here](https://www.medrxiv.org/content/
   ```
 
 ## Installation
-HMMSTR is currently available on Pypi
+HMMSTR is currently available on Pypi and Anaconda
 ```
 pip install HMMSTR
 ```
-
+```
+conda install kvandeynze::hmmstr
+```
+A small test fasta file is included under [tests](tests/). Test your install with:
+```
+hmmstr targets_tsv tests/AAAAG_input.txt test_install tests/AAAAG_11012021_10.fa --max_peaks 3
+```
 ## Usage
 ```
 usage: hmmstr [-h] [--output_plots] [--output_labelled_seqs] [--max_peaks MAX_PEAKS] [--cpus CPUS] [--flanking_size FLANKING_SIZE] [--mode MODE] [--mapq_cutoff MAPQ_CUTOFF] [--k K] [--w W] [--use_full_read] [--peakcalling_method PEAKCALLING_METHOD] [--bandwidth BANDWIDTH] [--kernel KERNEL] [--bootstrap] [--call_width CALL_WIDTH] [--resample_size RESAMPLE_SIZE] [--allele_specific_CIs] [--allele_specific_plots]
@@ -69,7 +75,7 @@ Optionally, the user may also input all options as a text file which each input 
 |  Argument &nbsp; &nbsp; &nbsp; | Description |
 |---|---|
 |out| Path to output directory with prefix for all results in this run|
-|inFile| Sequence file in fasta or fastq format, can be gzipped (must end with .gz)|
+|inFile| Sequence file in fasta or fastq format, can be gzipped (must end with .gz). BAM input supported for `coordinates` input mode only (must end with .bam).|
 <details>
   <summary> Optional Arguments </summary>
   
@@ -249,17 +255,17 @@ Allele 1           |  Allele 2           |  Allele 3
    <summary> Repeat Expansion Panel </summary>
    
    ### Repeat Expansion Panel
-   HMMSTR was designed as a companion tandem repeat caller for our repeat expansion panel as described in our [manuscript](https://www.medrxiv.org/content/10.1101/2024.05.01.24306681v1). While HMMSTR performs optimally at a 100bp prefix and suffix model across all targets, in practice some targets do have more optimal model sizes based on their sequence context. For this reason, we provide [input target files](panel_target_inputs) (both coordinates and tsv inputs) separated by optimal model sizes. Below is an example of how to run one set of our targets (targets with 100bp flanking sequence model as their optimal model) in ```coordinates```.
+   HMMSTR was designed as a companion tandem repeat caller for our repeat expansion panel as described in our [manuscript](https://www.medrxiv.org/content/10.1101/2024.05.01.24306681v1). Below is an example of how to run one set of our targets in ```coordinates```.
 
    Run with ```coordinates``` input and all default parameters except ```--mapq_cutoff``` (we want to be strict with reads we accept)
    ```
-hmmstr coordinates $TARGET_COORDS_100bp $CHR_SIZES $REF $OUT_100bp $INFILE --mapq_cutoff 60
+hmmstr coordinates $TARGET_COORDS $CHR_SIZES $REF $OUT $INFILE --mapq_cutoff 60
   ```
 This run will also produce the accompanying input file for future ```target_tsv``` runs under the output directory and prefix as ```_inputs.tsv```
 
 One caveat you may run into is exceedingly low (1-2 reads) or unbalanced coverage across expanded alleles in an expansion positive sample. In this case, HMMSTR may discard the expanded allele if either ```--discard_outliers``` or ```--peakcalling_method kde_throw_outliers``` are passed. To account for this, it is recommended that in these cases you do not use either of these modes but rather override the default peak caller as follows:
 ```
-hmmstr coordinates $TARGET_COORDS_100bp $CHR_SIZES $REF $OUT_100bp $INFILE --mapq_cutoff 60 --peakcalling_method gmm
+hmmstr coordinates $TARGET_COORDS $CHR_SIZES $REF $OUT $INFILE --mapq_cutoff 60 --peakcalling_method gmm
 ```
 This will ensure the entire dataset is considered during genotyping. Note: this will also result in an increase of false heterozygous calls for homozygous regions. If you wish to have high accuracy for both expanded alleles and homozygotes, consider running HMMSTR with both settings on the same sequence file.
 
@@ -284,7 +290,7 @@ If there is sufficient coverage across all alleles in the run, this is not an is
    hmmstr targets_tsv [Input tsv] [Output prefix] [Infile] --mapq_cutoff 0 --mode sr --k 6 --w 2 --use_full_read --flanking_size 50
    ```
 6. Can I run HMMSTR on whole genome sequencing data?
-   - HMMSTR is designed for targeted sequencing data and is not optimized for WGS data. However, if you would like to use HMMSTR to genotype specific targets from a WGS dataset we recommend you subset your dataset to only include regions of interest using ``` samtools view ``` then converting the reads back to fasta or fastq format. This will improve the specificity and runtime of the genotyping.
+   - HMMSTR is designed for targeted sequencing data and is not optimized for WGS data. However, if you would like to use HMMSTR to genotype specific targets from a WGS dataset we recommend you use `coordinates` in combination with a pre-aligned BAM file as input. This allows for more rigorous target assignment and limits off target genotyping.
 7. How can I call copy number estimates from non-spanning/soft clip reads?
    - While a core requirement of the HMMSTR algorithm is detecting unique flanking sequence, you can obtain copy number estimates from soft clipped reads using HMMSTR following our methods in our [manuscript](https://www.medrxiv.org/content/10.1101/2024.05.01.24306681v1). Put briefly, you can arrange your inputs to target one flanking region and allow the second flanking region to end in the expected repeat. Note that this procedure will yield a rough estimate and we do plan to incorporate a more rigorous mode for non-spanning read estimates in future iterations.
 8. Can I use HMMSTR to recover motif composition?
