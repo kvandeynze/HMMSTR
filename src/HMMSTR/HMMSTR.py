@@ -277,6 +277,7 @@ def call_peaks(row, out, out_count_name, plot_hists, max_peaks, filter_outliers=
             allele_calls = {"name":curr_kde.name}
             allele_calls['bandwidth'] = -1
             allele_calls["peak_calling_method"] = -1
+            allele_calls["num_supporting_reads"] = 0
             for i in range(max_peaks):
                 allele_calls["A"+str(i + 1)+":median"] = 0
                 allele_calls["A"+str(i + 1)+":mode"] = 0
