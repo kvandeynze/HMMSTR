@@ -1,39 +1,40 @@
+{% set version = "1.0.2" %}
+
 package:
   name: hmmstr
-  version: 1.0.2
+  version: {{ version }}
 
 source:
-  url: https://github.com/Boyle-Lab/HMMSTR/archive/refs/tags/v1.0.2.tar.gz
+  url: https://pypi.io/packages/source/h/HMMSTR/HMMSTR-{{ version }}.tar.gz
+  # You will need to replace the sha256 with the actual hash of your hmmstr package
+  sha256: 428b3b6d4dba7740c3af13d094b907dc6556a7447240da959dbecdca2a687bde
+
+build:
+  number: 0
+  script: "{{PYTHON}} -m pip install . --no-deps --ignore-installed --no-cache-dir --no-build-isolation -vv"
+  
 
 requirements:
   build:
     - {{ compiler('c') }}
+    # - pkg-config
+  host:
+    - python
+    - pkg-config
+    - pip
     - cython
     - setuptools
-    - glib
-    - pkg-config
-  host:
-    - python >=3.8.17
-    - glib
-    - pip
-    - colorama
-    - numpy
-    - pandas
-    - pickleshare
-    - scikit-learn
-    - scipy
-    - seaborn
-    - importlib-resources
-    - mappy
-    - pysam
+    - wheel
+    - libcxx  # For libc
+    - glib    # For libglib-2.0
   run:
-    - python >=3.8.17
+    - python
     - colorama
-    - numpy
-    - pandas
+    - numpy 
+    - pandas 
     - pickleshare
     - scikit-learn
-    - scipy
+    - scipy 
     - seaborn
     - importlib-resources
     - mappy
@@ -42,8 +43,10 @@ requirements:
 test:
   commands:
     - hmmstr --help
+  # imports:
+  #   - hmmstr
 
 about:
   home: https://github.com/Boyle-Lab/HMMSTR
   license: MIT
-  summary: "HMMSTR is a bioinformatics software package for calling tandem repeat copy number from raw, long-read, sequencing reads."
+  summary: "HMMSTR is a bioinformatics software package for calling tandem reapeat copy number from raw, long-read, sequencing reads."
