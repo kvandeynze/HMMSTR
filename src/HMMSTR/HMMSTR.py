@@ -777,6 +777,7 @@ def main():
         if args.subcommand == 'coordinates' and args.inFile.endswith('.bam'): # check if bam infile
             with open(args.coords_file, 'r') as f:
                 num_columns = len(f.readline().split())
+            with open(args.coords_file, 'r') as f:
                 if num_columns == 4:
                     regions = [(line.split()[0], int(line.split()[1]), int(line.split()[2])) for line in f] #FIXME this current implementation uses the coordinates from the bed file to get regions and ignores names (if provided), this will break in process read since we write our outputs in terms of names, thus currently only compatible with no names given
                 elif num_columns == 5:
