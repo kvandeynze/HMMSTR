@@ -189,7 +189,11 @@ def generate_input_sheet(coords_file, chrom_sizes_file, ref,flanking_length=200)
     targets_dict["prefix"].append(ref_aligner.seq(name=target.chr,start=target.prefix_start,end=target.start))
     targets_dict['repeat'].append(target.repeat)
     targets_dict['suffix'].append(ref_aligner.seq(name=target.chr,start=target.end,end=target.suffix_end))
-  return pd.DataFrame(targets_dict)
+  
+  #add check for regions with 'N' in the prefix/suffix, we don't want to include these since we can't build our model with them
+  targets_df = pd.DataFrame(targets_dict)
+  #drop ros with N in prefix or suffix
+  return targets_df
 
 def remove_flanking_outliers(counts_data):
   '''
