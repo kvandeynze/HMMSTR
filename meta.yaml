@@ -1,13 +1,13 @@
-{% set version = "1.0.4" %}
+{% set version = "1.0.5" %}
 
 package:
   name: hmmstr
   version: {{ version }}
 
 source:
-  url: https://files.pythonhosted.org/packages/f7/6a/6a5b45146394a62fe8b45f160feabed36b53e5b71c89e0d41d82f8fd1e1e/HMMSTR-{{ version }}.tar.gz
+  url: https://files.pythonhosted.org/packages/73/eb/c2746191ab0de3153f1dbd40bf3d5547721bf6418b037fde17cd4e7f1356/HMMSTR-{{ version }}.tar.gz
   # You will need to replace the sha256 with the actual hash of your hmmstr package
-  sha256: 8e3664370a910134465d72f1a3639af168aac1da56eb87f9765791fcd73ca326
+  sha256: 2ece13b332cb86fc91ae0e66393b9ec757d19ed36cb2c7f38493ac2e34759436
 
 build:
   number: 0

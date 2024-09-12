@@ -724,6 +724,10 @@ def main():
         targets = pd.read_csv(args.targets, sep="\t")
     else:
         print("Targets generated from coordinates. Reading in target inputs from %s..."%(args.out + "_inputs.tsv"))
+    
+    # Drop targets with 'N' in prefix or suffix
+    targets = targets[~(targets.prefix.str.contains('N') | targets.suffix.str.contains('N'))]
+
     #convert custom inputs
     if args.E_probs is not None:
         E_probs = read_model_params(args.E_probs,"emissions")
