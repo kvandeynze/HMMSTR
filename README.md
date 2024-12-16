@@ -9,7 +9,9 @@ HMMSTR calls tandem repeat copy number from raw, long-read, sequencing reads and
 
 HMMSTR is optimized for targeted sequencing experiments and can be run with a single or multiple target regions/sequences in a global-alignment and reference free format.
 
-Our preprint is now available on medRxiv [here](https://www.medrxiv.org/content/10.1101/2024.05.01.24306681v1)
+## Citation
+Kinsey Van Deynze, Camille Mumm, Connor J Maltby, Jessica A Switzenberg, Peter K Todd, Alan P Boyle, Enhanced detection and genotyping of disease-associated tandem repeats using HMMSTR and targeted long-read sequencing, Nucleic Acids Research, 2024;, gkae1202, https://doi.org/10.1093/nar/gkae1202
+
 ## Dependencies
 * Python >= 3.8.17, < 3.12
 * colorama
