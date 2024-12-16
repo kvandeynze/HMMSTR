@@ -30,12 +30,10 @@ Our preprint is now available on medRxiv [here](https://www.medrxiv.org/content/
 ## Installation
 HMMSTR is currently available on Pypi and Anaconda
 
-# HMMSTR
-
 [![PyPI version](https://img.shields.io/pypi/v/HMMSTR.svg)](https://pypi.org/project/HMMSTR/)
 [![PyPI downloads](https://img.shields.io/pypi/dm/HMMSTR.svg)](https://pypi.org/project/HMMSTR/)
-[![Conda version](https://img.shields.io/conda/vn/conda-forge/HMMSTR.svg)](https://anaconda.org/conda-forge/HMMSTR)
-[![Conda downloads](https://img.shields.io/conda/dn/conda-forge/HMMSTR.svg)](https://anaconda.org/conda-forge/HMMSTR)
+[![Conda version](https://img.shields.io/conda/vn/conda-forge/HMMSTR.svg)](https://anaconda.org/conda-forge/hmmstr)
+[![Conda downloads](https://img.shields.io/conda/dn/conda-forge/HMMSTR.svg)](https://anaconda.org/conda-forge/hmmstr)
 
 ## Description
 
