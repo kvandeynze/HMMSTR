@@ -32,8 +32,8 @@ HMMSTR is currently available on Pypi and Anaconda
 
 [![PyPI version](https://img.shields.io/pypi/v/HMMSTR.svg)](https://pypi.org/project/HMMSTR/)
 [![PyPI downloads](https://img.shields.io/pypi/dm/HMMSTR.svg)](https://pypi.org/project/HMMSTR/)
-[![Conda version](https://img.shields.io/conda/vn/conda-forge/HMMSTR.svg)]([https://anaconda.org/conda-forge/hmmstr](https://anaconda.org/kvandeynze/hmmstr))
-[![Conda downloads](https://img.shields.io/conda/dn/conda-forge/HMMSTR.svg)]([https://anaconda.org/conda-forge/hmmstr](https://anaconda.org/kvandeynze/hmmstr))
+[![Conda version](https://img.shields.io/conda/vn/conda-forge/HMMSTR.svg)](https://anaconda.org/kvandeynze/hmmstr)
+[![Conda downloads](https://img.shields.io/conda/dn/conda-forge/HMMSTR.svg)](https://anaconda.org/kvandeynze/hmmstr)
 
 ## Description
 
