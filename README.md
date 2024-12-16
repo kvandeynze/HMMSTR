@@ -37,9 +37,6 @@ HMMSTR is currently available on Pypi and Anaconda
 [![Conda version](https://img.shields.io/conda/vn/conda-forge/HMMSTR.svg)](https://anaconda.org/kvandeynze/hmmstr)
 [![Conda downloads](https://img.shields.io/conda/dn/conda-forge/HMMSTR.svg)](https://anaconda.org/kvandeynze/hmmstr)
 
-## Description
-
-Add your project description here.
 ```
 pip install HMMSTR
 ```
